@@ -34,6 +34,9 @@
 #define PCI_REG_OFFSET          2
 #define PCI_BITS_BYTE           8
 
+#define FDK_CMOS_ADDR			0x70
+#define FDK_CMOS_DATA			0x71
+
 
 u32 pciBaseAddress( u32 bus, u32 dev, u32 fun, u32 reg );
 u32 pciReadConfDWord( u32 addr );
@@ -204,7 +207,6 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 
 	case FDK_REQ_IO_READ:
 
-#if 0
 		// Read IO content
 		ptr = (s8 *)&pFdkCommPkt->fdkRspIoReadPkt.ioContent;
 		ioAddr = pFdkCommPkt->fdkReqIoReadPkt.address;
@@ -213,9 +215,8 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 		for( i = 0 ; i < sz ; i++ ) {
 
 			// Read IO data
-			*(ptr + i) = IoInByte( ioAddr + i );
+			*(ptr + i) = inb( ioAddr + i );
 		}
-#endif
 
 		// Prepare the response packet
 		pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_IO_READ;
@@ -228,7 +229,6 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 
 	case FDK_REQ_IO_WRITE:
 
-#if 0
 		// Write IO content
 		ptr = (s8 *)&pFdkCommPkt->fdkReqIoWritePkt.ioContent;
 		ioAddr = pFdkCommPkt->fdkReqIoReadPkt.address;
@@ -237,9 +237,8 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 		for( i = 0 ; i < sz ; i++ ) {
 
 			// Write IO data
-			IoOutByte( *(ptr + i), ioAddr + i );
+			outb( *(ptr + i), ioAddr + i );
 		}
-#endif
 
 		// Prepare the response packet
 		pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_IO_WRITE;
@@ -334,7 +333,6 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 
 	case FDK_REQ_CMOS_READ:
 
-#if 0
 		// Read CMOS device
         ptr = (s8 *)&pFdkCommPkt->fdkRspCmosReadPkt.cmosContent;
         cmosAddr = pFdkCommPkt->fdkReqCmosReadPkt.address;
@@ -344,11 +342,10 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 		for( i = 0 ; i < cmosSz ; i++ ) {
 
 			// Write CMOS address
-			IoOutByte( i, Fdk_CMOS_ADDR );
+			outb( i, FDK_CMOS_ADDR );
 			// Read CMOS data
-			*(ptr + i) = IoInByte( Fdk_CMOS_DATA );
+			*(ptr + i) = inb( FDK_CMOS_DATA );
 		}
-#endif
 
         // Prepare the response packet
         pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_CMOS_READ;
@@ -361,7 +358,6 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 
 	case FDK_REQ_CMOS_WRITE:
 
-#if 0
 		// Write CMOS device
 		ptr = (s8 *)&pFdkCommPkt->fdkReqCmosWritePkt.cmosContent;
 		cmosAddr = pFdkCommPkt->fdkReqCmosReadPkt.address;
@@ -371,11 +367,10 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 		for( i = 0 ; i < cmosSz ; i++ ) {
 
 			// Write CMOS address
-			IoOutByte( i, Fdk_CMOS_ADDR );
+			outb( i, FDK_CMOS_ADDR );
 			// Write CMOS data
-			IoOutByte( *(ptr + i), Fdk_CMOS_DATA );
+			outb( *(ptr + i), FDK_CMOS_DATA );
 		}
-#endif
 
 		// Prepare the response packet
 		pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_CMOS_WRITE;

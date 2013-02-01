@@ -10,13 +10,16 @@
 ################################################################################
 TARGET				=	lfdk lfdksvr
 
-CFLAGS				=	-O2 -Wall -Iinclude
+CFLAGS				=	-g3 -Wall -Iinclude
 LDFLAGS				=
 
 all: $(TARGET)
 
 lfdk: lfdk.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -lpanel -lncurses -o $@ $< packet.c dumpPanel.c pciListPanel.c utils.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -lpanel -lncurses -o $@ $< packet.c dumpPanel.c pciListPanel.c utils.c socket.c
+
+lfdksvr: lfdksvr.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< packet.c utils.c socket.c
 
 clean:
 	rm -f *.o $(TARGET)

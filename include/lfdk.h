@@ -13,6 +13,13 @@
 #define KDBGER_MAX_PATH				256
 #define KDBGER_DEF_PCIIDS			"/usr/share/misc/pci.ids"
 #define KDBGER_DEF_TTYDEV			"/dev/pts/0"
+#define KDBGER_DEF_IPADDR			"127.0.0.1"
+#define KDBGER_DEF_PORT				5678
+
+#define AFDKD_NAME                  "LFDK Server"
+#define AFDKD_SERVER_PORT           KDBGER_DEF_PORT
+#define AFDKD_REV                   "0.0.1"
+#define AFDKD_PKTSIZE               128
 
 #define KDBGER_MIN_LINE				0
 #define KDBGER_MIN_COLUMN			0

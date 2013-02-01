@@ -34,6 +34,7 @@ static void help( void ) {
     fprintf( stderr, "Author: Merck Hung <merckhung@gmail.com>\n" );
     fprintf( stderr, "help: kdbger [-d /dev/ttyS0] [-h]\n\n" );
 	fprintf( stderr, "\t-p\tPCI IDs filepath, default is " KDBGER_DEF_PCIIDS "\n" );
+	fprintf( stderr, "\t-i\tIPv4 address, default is " KDBGER_DEF_IPADDR "\n");
 	fprintf( stderr, "\t-d\tUART TTY device, default is " KDBGER_DEF_TTYDEV "\n");
     fprintf( stderr, "\t-h\tPrint help and exit\n\n");
 }
@@ -234,12 +235,13 @@ Author: Merck Hung <merckhung@gmail.com>\n\n\
 
 s32 main( s32 argc, s8 **argv ) {
 
-	s8 c, ttyDevice[ KDBGER_MAX_PATH ];
+	s8 c, ttyDevice[ KDBGER_MAX_PATH ], ipAddr[ KDBGER_MAX_PATH ];
 	kdbgerUiProperty_t kdbgerUiProperty;
-
+	s8 useIp = 1;
 
 	// Initialization
 	strncpy( ttyDevice, KDBGER_DEF_TTYDEV, KDBGER_MAX_PATH );
+	strncpy( ipAddr, KDBGER_DEF_IPADDR, KDBGER_MAX_PATH );
 	memset( &kdbgerUiProperty, 0, sizeof( kdbgerUiProperty_t ) );
 	kdbgerUiProperty.kdbgerHwFunc = kdbgerUiProperty.kdbgerPreviousHwFunc = KHF_INIT;
 	kdbgerUiProperty.pKdbgerCommPkt = (kdbgerCommPkt_t *)kdbgerUiProperty.pktBuf;
@@ -248,12 +250,18 @@ s32 main( s32 argc, s8 **argv ) {
 
 
 	// Handle parameters
-    while( (c = getopt( argc, argv, "p:d:h" )) != EOF ) {
+    while( (c = getopt( argc, argv, "p:i:d:h" )) != EOF ) {
 
         switch( c ) {
 
 			case 'd':
 				strncpy( ttyDevice, optarg, KDBGER_MAX_PATH );
+				useIp = 0;
+				break;
+
+			case 'i':
+				strncpy( ipAddr, optarg, KDBGER_MAX_PATH );
+				useIp = 1;
 				break;
 
 			case 'p':
@@ -272,27 +280,39 @@ s32 main( s32 argc, s8 **argv ) {
     }
 
 
-	// Open TTY device
-	kdbgerUiProperty.fd = open( ttyDevice, O_RDWR );
-	if( kdbgerUiProperty.fd < 0 ) {
+	if( !useIp ) {
 
-		fprintf( stderr, "Cannot open device %s\n", ttyDevice );
-		return 1;
+		// Open TTY device
+		kdbgerUiProperty.fd = open( ttyDevice, O_RDWR );
+		if( kdbgerUiProperty.fd < 0 ) {
+
+			fprintf( stderr, "Cannot open device %s\n", ttyDevice );
+			return 1;
+		}
+
+
+		// Configure TTY device
+		if( configureTtyDevice( kdbgerUiProperty.fd ) ) {
+
+			fprintf( stderr, "Cannot configure device %s\n", ttyDevice );
+			goto ErrExit;
+		}
 	}
+	else {
 
+    	// Open a socket
+    	if( connectSocket( &kdbgerUiProperty.fd, ipAddr, KDBGER_DEF_PORT ) ) {
 
-	// Configure TTY device
-	if( configureTtyDevice( kdbgerUiProperty.fd ) ) {
-
-		fprintf( stderr, "Cannot configure device %s\n", ttyDevice );
-		goto ErrExit;
+        	fprintf( stderr, "Cannot open socket\n" );
+			goto ErrExit;
+    	}
 	}
 
 
 	// Connect to OluxOS Kernel
 	if( connectToOluxOSKernel( &kdbgerUiProperty ) ) {
 
-		fprintf( stderr, "Cannot connect to OluxOS Kernel via %s\n", ttyDevice );
+		fprintf( stderr, "Cannot connect to LFDK server\n" );
 		goto ErrExit;
 	}
 
@@ -516,11 +536,19 @@ ErrExit1:
 	free( kdbgerUiProperty.pKdbgerPciDev );
 
 ErrExit:
-	// Close TTY device
-	close( kdbgerUiProperty.fd );
+
+	if( !useIp ) {
+
+		// Close TTY device
+		close( kdbgerUiProperty.fd );
+	}
+	else {
+
+		// Close the socket
+		deinitializeSocket( kdbgerUiProperty.fd );	
+	}
 
     return 0;
 }
-
 
 

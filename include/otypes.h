@@ -30,3 +30,10 @@ typedef     unsigned char           bool;
 #define		PACKED					__attribute__((packed))
 
 
+typedef struct _commonLinklist {
+
+    struct _commonLinklist  *next;
+
+} commonLinklist_t;
+
+

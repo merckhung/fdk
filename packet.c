@@ -91,8 +91,8 @@ s32 verifyResponsePacket( kdbgerCommPkt_t *pKdbgerCommPkt, kdbgerOpCode_t op ) {
 				return 1;
 			break;
 
-		case KDBGER_RSP_E810_LIST:
-			if( op != KDBGER_REQ_E810_LIST )
+		case KDBGER_RSP_E820_LIST:
+			if( op != KDBGER_REQ_E820_LIST )
 				return 1;
 			break;
 
@@ -222,7 +222,7 @@ s32 executeFunction( s32 fd, kdbgerOpCode_t op, u64 addr, u32 size, u8 *cntBuf, 
 				sizeof( kdbgerReqPciWritePkt_t );
 			break;
 
-		case KDBGER_REQ_E810_LIST:
+		case KDBGER_REQ_E820_LIST:
 
 			pKdbgerCommPkt->kdbgerCommHdr.pktLen =
 				sizeof( kdbgerReqE820ListPkt_t );
@@ -238,7 +238,11 @@ s32 executeFunction( s32 fd, kdbgerOpCode_t op, u64 addr, u32 size, u8 *cntBuf, 
 	pKdbgerCommPkt->kdbgerCommHdr.opCode = op;
 
 	// Transmit the request
+#if 1
 	rwByte = write( fd, pktBuf, pKdbgerCommPkt->kdbgerCommHdr.pktLen );
+#else
+	rwByte = send( fd, pktBuf, pKdbgerCommPkt->kdbgerCommHdr.pktLen, 0 );
+#endif
 	if( rwByte != pKdbgerCommPkt->kdbgerCommHdr.pktLen ) {
 
 		fprintf( stderr, "Error on transmitting request wsize = %d\n", rwByte );
@@ -247,7 +251,11 @@ s32 executeFunction( s32 fd, kdbgerOpCode_t op, u64 addr, u32 size, u8 *cntBuf, 
 
 	// Receive the response
 	memset( pktBuf, 0, lenPktBuf );
+#if 1
 	rwByte = read( fd, pktBuf, lenPktBuf );
+#else
+	rwByte = recv( fd, pktBuf, lenPktBuf, 0 );
+#endif
 	if( !rwByte ) {
 
 		fprintf( stderr, "No response\n" );

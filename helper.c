@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
-#include <pthread.h>
+#include <sys/io.h>
 
 #include <mtypes.h>
 #include <fdk.h>
@@ -16,19 +16,98 @@
 #include <packet.h>
 
 
-#if 0
-static u32 fdkPciDetectDevice( FdkPciDev_t *pFdkPciDev ) {
+#define PCI_ADDR_PORT           0xCF8
+#define PCI_DATA_PORT           0xCFC
+#define PCI_DATA_PORT_END       0xCFC
+
+#define PCI_ADDR_ENABLE         0x80000000
+
+#define PCI_BUS_MASK            0xFF
+#define PCI_DEV_MASK            0x1F
+#define PCI_FUNC_MASK           0x07
+#define PCI_REG_MASK            0xFF
+#define PCI_REG_ALIGN           0x00000003
+
+#define PCI_BUS_OFFSET          16
+#define PCI_DEV_OFFSET          11
+#define PCI_FUNC_OFFSET         8
+#define PCI_REG_OFFSET          2
+#define PCI_BITS_BYTE           8
+
+
+u32 pciBaseAddress( u32 bus, u32 dev, u32 fun, u32 reg );
+u32 pciReadConfDWord( u32 addr );
+void pciWriteConfDWord( u32 addr, u32 value );
+u8 pciReadConfByte( u32 addr );
+void pciWriteConfByte( u32 addr, u8 value );
+
+
+u32 pciBaseAddress( u32 bus, u32 dev, u32 func, u32 reg ) {
+
+    return (PCI_ADDR_ENABLE
+        | ((bus & PCI_BUS_MASK) << PCI_BUS_OFFSET)
+        | ((dev & PCI_DEV_MASK) << PCI_DEV_OFFSET)
+        | ((func & PCI_FUNC_MASK) << PCI_FUNC_OFFSET)
+		| ((reg & PCI_REG_MASK) << PCI_REG_OFFSET));
+}
+
+
+s32 pciInitialize( void ) {
+
+    if( ioperm( PCI_ADDR_PORT, PCI_DATA_PORT_END, 1 ) )
+        return FALSE;
+
+    return TRUE;
+}
+
+
+u32 pciReadConfDWord( u32 addr ) {
+
+    outl( addr, PCI_ADDR_PORT );
+    return inl( PCI_DATA_PORT );
+}
+
+
+void pciWriteConfDWord( u32 addr, u32 value ) {
+
+    outl( addr, PCI_ADDR_PORT );
+    outl( value, PCI_DATA_PORT );
+}
+
+
+u8 pciReadConfByte( u32 addr ) {
+
+    u32 off = addr & PCI_REG_ALIGN;
+    return (pciReadConfDWord( addr & (~PCI_REG_ALIGN) ) >> (off * PCI_BITS_BYTE)) & 0xFFUL;
+}
+
+
+void pciWriteConfByte( u32 addr, u8 value ) {
+
+    u32 off = addr & PCI_REG_ALIGN;
+    u32 val, mask = (0xFFUL << (off * PCI_BITS_BYTE));
+    u32 input = value;
+
+    input <<= (off * PCI_BITS_BYTE);
+    val = pciReadConfDWord( addr & (~PCI_REG_ALIGN) ) & mask;
+    val |= input;
+
+    pciWriteConfDWord( addr & (~PCI_REG_ALIGN), input );
+}
+
+
+u32 fdkPciDetectDevice( fdkPciDev_t *pFdkPciDev ) {
 
 	u32 value;
     u16 bus;
     u8 dev, func;
 	u32 count = 0;
 
-    for( bus = 0 ; bus <= PCI_BUS_MAX ; bus++ )
-        for( dev = 0 ; dev <= PCI_DEV_MAX ; dev++ )
-            for( func = 0 ; func <= PCI_FUN_MAX ; func++ ) {
+    for( bus = 0 ; bus <= PCI_BUS_MASK ; bus++ )
+        for( dev = 0 ; dev <= PCI_DEV_MASK ; dev++ )
+            for( func = 0 ; func <= PCI_FUNC_MASK ; func++ ) {
 
-                value = PciReadConfigDWord( PciCalBaseAddr( bus, dev, func ), 0 );
+                value = pciReadConfDWord( pciBaseAddress( bus, dev, func, 0 ) );
                 if( value != 0xFFFFFFFF ) {
 
 					pFdkPciDev->bus = bus;
@@ -44,7 +123,6 @@ static u32 fdkPciDetectDevice( FdkPciDev_t *pFdkPciDev ) {
 
 	return count;
 }
-#endif
 
 
 s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
@@ -55,13 +133,16 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 	u32 pciAddr = 0;
 	u16 pciSz = 0;
 	u8 cmosAddr = 0, cmosSz = 0;
-
+	u32 i;
+	s8 *ptr;
 
 	// Basic heck for a corrupt packet
 	if( (rByte < sizeof( fdkCommHdr_t ))
 		|| (rByte < pFdkCommPkt->fdkCommHdr.pktLen) )
 		return -1;
 
+	if( pciInitialize() == FALSE )
+        return -1;
 
 	// Handle OPcode
 	switch( pFdkCommPkt->fdkCommHdr.opCode ) {
@@ -170,7 +251,6 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 
 	case FDK_REQ_PCI_READ:
 
-#if 0
 		// Read PCI config space
         ptr = (s8 *)&pFdkCommPkt->fdkRspPciReadPkt.pciContent;
         pciAddr = pFdkCommPkt->fdkReqPciReadPkt.address;
@@ -178,9 +258,8 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
         for( i = 0 ; i < pciSz ; i++ ) {
 
          	// Read PCI config data
-			*(ptr + i) = PciReadConfigByte( pciAddr, i );
+			*(ptr + i) = pciReadConfByte( pciAddr + i );
         }
-#endif
 
         // Prepare the response packet
         pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_PCI_READ;
@@ -193,7 +272,6 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 
 	case FDK_REQ_PCI_WRITE:
 
-#if 0
 		// Write PCI config space
 		ptr = (s8 *)&pFdkCommPkt->fdkReqPciWritePkt.pciContent;
 		pciAddr = pFdkCommPkt->fdkReqPciReadPkt.address;
@@ -202,9 +280,8 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 		for( i = 0 ; i < pciSz ; i++ ) {
 
 			// Write PCI config data
-			PciWriteConfigByte( pciAddr, i, *(ptr + i) );
+			pciWriteConfByte( pciAddr + i, *(ptr + i) );
 		}
-#endif
 
 		// Prepare the response packet
 		pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_PCI_WRITE;
@@ -311,12 +388,8 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 	case FDK_REQ_PCI_LIST:
 
 		// Scan PCI devices
-#if 0
 		pFdkCommPkt->fdkRspPciListPkt.numOfPciDevice =
-		fdkPciDetectDevice( (FdkPciDev_t *)&pFdkCommPkt->fdkRspPciListPkt.pciListContent );
-#else
-		pFdkCommPkt->fdkRspPciListPkt.numOfPciDevice = 0;
-#endif
+		fdkPciDetectDevice( (fdkPciDev_t *)&pFdkCommPkt->fdkRspPciListPkt.pciListContent );
 
 		// Prepare the response packet
 		pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_PCI_LIST;

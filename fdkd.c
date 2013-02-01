@@ -102,14 +102,19 @@ s32 main( s32 argc, s8 **argv ) {
         if( acceptSocket( sfd, &cfd ) != TRUE )
             continue;
         
-        // Read incoming data
-        receiveSocket( cfd, packet, FDK_PKTSIZE, &rwByte );
-		if( rwByte <= 0 )
-			continue;
+		while( 1 ) {
 
-		// Handle this packet
-		if( !handleRequestPacket( cfd, (fdkCommPkt_t *)packet, rwByte ) )
-			transferSocket( cfd, packet, ((fdkCommPkt_t *)packet)->fdkCommHdr.pktLen, &rwByte );
+        	// Read incoming data
+        	receiveSocket( cfd, packet, FDK_PKTSIZE, &rwByte );
+			if( rwByte <= 0 )
+				continue;
+
+			// Handle this packet
+			if( !handleRequestPacket( cfd, (fdkCommPkt_t *)packet, rwByte ) )
+				transferSocket( cfd, packet, ((fdkCommPkt_t *)packet)->fdkCommHdr.pktLen, &rwByte );
+			else
+				break;
+		}
         
         // Close this connection
         deinitializeSocket( cfd );

@@ -1,12 +1,3 @@
-/*
- * Copyright (C) 2011 Olux Organization All rights reserved.
- * Author: Merck Hung <merck@gmail.com>
- *
- * File: packet.c
- * Description:
- *	OluxOS Kernel Debugger
- *
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,85 +9,82 @@
 #include <time.h>
 #include <termios.h>
 
-#include <otypes.h>
+#include <mtypes.h>
 #include <packet.h>
 
-#include <ncurses.h>
-#include <panel.h>
-
-#include <lfdk.h>
+#include <fdk.h>
 
 
-s32 verifyResponsePacket( kdbgerCommPkt_t *pKdbgerCommPkt, kdbgerOpCode_t op ) {
+s32 verifyResponsePacket( fdkCommPkt_t *pFdkCommPkt, fdkOpCode_t op ) {
 
-	switch( pKdbgerCommPkt->kdbgerCommHdr.opCode ) {
+	switch( pFdkCommPkt->fdkCommHdr.opCode ) {
 
-		case KDBGER_RSP_CONNECT:
-			if( op != KDBGER_REQ_CONNECT )
+		case FDK_RSP_CONNECT:
+			if( op != FDK_REQ_CONNECT )
 				return 1;
 			break;
 
-		case KDBGER_RSP_MEM_READ:
-			if( op != KDBGER_REQ_MEM_READ )
+		case FDK_RSP_MEM_READ:
+			if( op != FDK_REQ_MEM_READ )
 				return 1;
 			break;
 
-		case KDBGER_RSP_MEM_WRITE:
-            if( op != KDBGER_REQ_MEM_WRITE )
+		case FDK_RSP_MEM_WRITE:
+            if( op != FDK_REQ_MEM_WRITE )
                 return 1;
 			break;
 
-		case KDBGER_RSP_IO_READ:
-            if( op != KDBGER_REQ_IO_READ )
+		case FDK_RSP_IO_READ:
+            if( op != FDK_REQ_IO_READ )
                 return 1;
 			break;
 
-		case KDBGER_RSP_IO_WRITE:
-            if( op != KDBGER_REQ_IO_WRITE )
+		case FDK_RSP_IO_WRITE:
+            if( op != FDK_REQ_IO_WRITE )
                 return 1;
 			break;
 
-		case KDBGER_RSP_PCI_READ:
-            if( op != KDBGER_REQ_PCI_READ )
+		case FDK_RSP_PCI_READ:
+            if( op != FDK_REQ_PCI_READ )
                 return 1;
 			break;
 
-		case KDBGER_RSP_PCI_WRITE:
-            if( op != KDBGER_REQ_PCI_WRITE )
+		case FDK_RSP_PCI_WRITE:
+            if( op != FDK_REQ_PCI_WRITE )
                 return 1;
 			break;
 
-		case KDBGER_RSP_IDE_READ:
-            if( op != KDBGER_REQ_IDE_READ )
+		case FDK_RSP_IDE_READ:
+            if( op != FDK_REQ_IDE_READ )
                 return 1;
 			break;
 
-		case KDBGER_RSP_IDE_WRITE:
-            if( op != KDBGER_REQ_IDE_WRITE )
+		case FDK_RSP_IDE_WRITE:
+            if( op != FDK_REQ_IDE_WRITE )
                 return 1;
 			break;
 
-		case KDBGER_RSP_CMOS_READ:
-            if( op != KDBGER_REQ_CMOS_READ )
+		case FDK_RSP_CMOS_READ:
+            if( op != FDK_REQ_CMOS_READ )
                 return 1;
 			break;
 
-		case KDBGER_RSP_CMOS_WRITE:
-            if( op != KDBGER_REQ_CMOS_WRITE )
+		case FDK_RSP_CMOS_WRITE:
+            if( op != FDK_REQ_CMOS_WRITE )
                 return 1;
 			break;
 
-		case KDBGER_RSP_PCI_LIST:
-			if( op != KDBGER_REQ_PCI_LIST )
+		case FDK_RSP_PCI_LIST:
+			if( op != FDK_REQ_PCI_LIST )
 				return 1;
 			break;
 
-		case KDBGER_RSP_E820_LIST:
-			if( op != KDBGER_REQ_E820_LIST )
+		case FDK_RSP_E820_LIST:
+			if( op != FDK_REQ_E820_LIST )
 				return 1;
 			break;
 
-		case KDBGER_RSP_NACK:
+		case FDK_RSP_NACK:
 		default:
 			return 1;
 	}
@@ -105,9 +93,9 @@ s32 verifyResponsePacket( kdbgerCommPkt_t *pKdbgerCommPkt, kdbgerOpCode_t op ) {
 }
 
 
-s32 executeFunction( s32 fd, kdbgerOpCode_t op, u64 addr, u32 size, u8 *cntBuf, u8 *pktBuf, s32 lenPktBuf ) {
+s32 executeFunction( s32 fd, fdkOpCode_t op, u64 addr, u32 size, u8 *cntBuf, u8 *pktBuf, s32 lenPktBuf ) {
 
-	kdbgerCommPkt_t *pKdbgerCommPkt = (kdbgerCommPkt_t *)pktBuf;
+	fdkCommPkt_t *pFdkCommPkt = (fdkCommPkt_t *)pktBuf;
 	s32 rwByte;
 
 	// Clear buffer
@@ -116,116 +104,116 @@ s32 executeFunction( s32 fd, kdbgerOpCode_t op, u64 addr, u32 size, u8 *cntBuf, 
 	// Fill in data fields
 	switch( op ) {
 
-		case KDBGER_REQ_CONNECT:
+		case FDK_REQ_CONNECT:
 
-			pKdbgerCommPkt->kdbgerCommHdr.pktLen = sizeof( kdbgerCommHdr_t );
+			pFdkCommPkt->fdkCommHdr.pktLen = sizeof( fdkCommHdr_t );
 			break;
 
-		case KDBGER_REQ_MEM_READ:
+		case FDK_REQ_MEM_READ:
 
-			pKdbgerCommPkt->kdbgerReqMemReadPkt.address = addr;
-			pKdbgerCommPkt->kdbgerReqMemReadPkt.size = size;
-			pKdbgerCommPkt->kdbgerCommHdr.pktLen = sizeof( kdbgerReqMemReadPkt_t );
+			pFdkCommPkt->fdkReqMemReadPkt.address = addr;
+			pFdkCommPkt->fdkReqMemReadPkt.size = size;
+			pFdkCommPkt->fdkCommHdr.pktLen = sizeof( fdkReqMemReadPkt_t );
 			break;
 
-		case KDBGER_REQ_MEM_WRITE:
+		case FDK_REQ_MEM_WRITE:
 
 			if( !size || !cntBuf )
 				return 1;
 
-			pKdbgerCommPkt->kdbgerReqMemWritePkt.address = addr;
-			pKdbgerCommPkt->kdbgerReqMemWritePkt.size = size;
-			memcpy( &pKdbgerCommPkt->kdbgerReqMemWritePkt.memContent, cntBuf, size );
-			pKdbgerCommPkt->kdbgerCommHdr.pktLen = 
-				sizeof( kdbgerReqMemWritePkt_t ) - sizeof( s8 * ) + size; 
+			pFdkCommPkt->fdkReqMemWritePkt.address = addr;
+			pFdkCommPkt->fdkReqMemWritePkt.size = size;
+			memcpy( &pFdkCommPkt->fdkReqMemWritePkt.memContent, cntBuf, size );
+			pFdkCommPkt->fdkCommHdr.pktLen = 
+				sizeof( fdkReqMemWritePkt_t ) - sizeof( s8 * ) + size; 
 			break;  
 
-		case KDBGER_REQ_IO_READ:
+		case FDK_REQ_IO_READ:
 
-			pKdbgerCommPkt->kdbgerReqIoReadPkt.address = (u16)(addr & 0xFFFFULL);
-			pKdbgerCommPkt->kdbgerReqIoReadPkt.size = size;
-			pKdbgerCommPkt->kdbgerCommHdr.pktLen = sizeof( kdbgerReqIoReadPkt_t );
+			pFdkCommPkt->fdkReqIoReadPkt.address = (u16)(addr & 0xFFFFULL);
+			pFdkCommPkt->fdkReqIoReadPkt.size = size;
+			pFdkCommPkt->fdkCommHdr.pktLen = sizeof( fdkReqIoReadPkt_t );
 			break;
 
-		case KDBGER_REQ_IO_WRITE:
+		case FDK_REQ_IO_WRITE:
 
 			if( !size || !cntBuf )
 				return 1;
 
-			pKdbgerCommPkt->kdbgerReqIoWritePkt.address = (u16)(addr & 0xFFFFULL);
-			pKdbgerCommPkt->kdbgerReqIoWritePkt.size = size;
-			memcpy( &pKdbgerCommPkt->kdbgerReqIoWritePkt.ioContent, cntBuf, size );
-			pKdbgerCommPkt->kdbgerCommHdr.pktLen = 
-				sizeof( kdbgerReqIoWritePkt_t ) - sizeof( s8 * ) + size; 
+			pFdkCommPkt->fdkReqIoWritePkt.address = (u16)(addr & 0xFFFFULL);
+			pFdkCommPkt->fdkReqIoWritePkt.size = size;
+			memcpy( &pFdkCommPkt->fdkReqIoWritePkt.ioContent, cntBuf, size );
+			pFdkCommPkt->fdkCommHdr.pktLen = 
+				sizeof( fdkReqIoWritePkt_t ) - sizeof( s8 * ) + size; 
 			break;
 
-		case KDBGER_REQ_PCI_READ:
+		case FDK_REQ_PCI_READ:
 
-			pKdbgerCommPkt->kdbgerReqPciReadPkt.address = (u32)(addr & 0xFFFFFFFFULL);
-			pKdbgerCommPkt->kdbgerReqPciReadPkt.size = (u16)(size & 0xFFFF);
-			pKdbgerCommPkt->kdbgerCommHdr.pktLen = sizeof( kdbgerReqPciReadPkt_t );
+			pFdkCommPkt->fdkReqPciReadPkt.address = (u32)(addr & 0xFFFFFFFFULL);
+			pFdkCommPkt->fdkReqPciReadPkt.size = (u16)(size & 0xFFFF);
+			pFdkCommPkt->fdkCommHdr.pktLen = sizeof( fdkReqPciReadPkt_t );
 			break;
 
-		case KDBGER_REQ_PCI_WRITE:
+		case FDK_REQ_PCI_WRITE:
 
 			if( !size || !cntBuf )
 				return 1;
 
-			pKdbgerCommPkt->kdbgerReqPciWritePkt.address = (u32)(addr & 0xFFFFFFFFULL);
-			pKdbgerCommPkt->kdbgerReqPciWritePkt.size = (u16)(size & 0xFFFF);
-			memcpy( &pKdbgerCommPkt->kdbgerReqPciWritePkt.pciContent, cntBuf, size );
-			pKdbgerCommPkt->kdbgerCommHdr.pktLen = 
-				sizeof( kdbgerReqPciWritePkt_t ) - sizeof( s8 * ) + size; 
+			pFdkCommPkt->fdkReqPciWritePkt.address = (u32)(addr & 0xFFFFFFFFULL);
+			pFdkCommPkt->fdkReqPciWritePkt.size = (u16)(size & 0xFFFF);
+			memcpy( &pFdkCommPkt->fdkReqPciWritePkt.pciContent, cntBuf, size );
+			pFdkCommPkt->fdkCommHdr.pktLen = 
+				sizeof( fdkReqPciWritePkt_t ) - sizeof( s8 * ) + size; 
 			break;
 
-		case KDBGER_REQ_IDE_READ:
+		case FDK_REQ_IDE_READ:
 
-			pKdbgerCommPkt->kdbgerReqIdeReadPkt.address = addr;
-			pKdbgerCommPkt->kdbgerReqIdeReadPkt.size = size;
-			pKdbgerCommPkt->kdbgerCommHdr.pktLen = sizeof( kdbgerReqIdeReadPkt_t );
+			pFdkCommPkt->fdkReqIdeReadPkt.address = addr;
+			pFdkCommPkt->fdkReqIdeReadPkt.size = size;
+			pFdkCommPkt->fdkCommHdr.pktLen = sizeof( fdkReqIdeReadPkt_t );
 			break;
 
-		case KDBGER_REQ_IDE_WRITE:
+		case FDK_REQ_IDE_WRITE:
 
 			if( !size || !cntBuf )
 				return 1;
 
-			pKdbgerCommPkt->kdbgerReqIdeWritePkt.address = addr;
-			pKdbgerCommPkt->kdbgerReqIdeWritePkt.size = size;
-			memcpy( &pKdbgerCommPkt->kdbgerReqIdeWritePkt.ideContent, cntBuf, size );
-			pKdbgerCommPkt->kdbgerCommHdr.pktLen = 
-				sizeof( kdbgerReqIdeWritePkt_t ) - sizeof( s8 * ) + size; 
+			pFdkCommPkt->fdkReqIdeWritePkt.address = addr;
+			pFdkCommPkt->fdkReqIdeWritePkt.size = size;
+			memcpy( &pFdkCommPkt->fdkReqIdeWritePkt.ideContent, cntBuf, size );
+			pFdkCommPkt->fdkCommHdr.pktLen = 
+				sizeof( fdkReqIdeWritePkt_t ) - sizeof( s8 * ) + size; 
 			break;
 
-		case KDBGER_REQ_CMOS_READ:
+		case FDK_REQ_CMOS_READ:
 
-			pKdbgerCommPkt->kdbgerReqCmosReadPkt.address = (u8)(addr & 0xFFULL);
-			pKdbgerCommPkt->kdbgerReqCmosReadPkt.size = (u8)(size & 0xFF);
-			pKdbgerCommPkt->kdbgerCommHdr.pktLen = sizeof( kdbgerReqCmosReadPkt_t );
+			pFdkCommPkt->fdkReqCmosReadPkt.address = (u8)(addr & 0xFFULL);
+			pFdkCommPkt->fdkReqCmosReadPkt.size = (u8)(size & 0xFF);
+			pFdkCommPkt->fdkCommHdr.pktLen = sizeof( fdkReqCmosReadPkt_t );
 			break;
 
-		case KDBGER_REQ_CMOS_WRITE:
+		case FDK_REQ_CMOS_WRITE:
 
 			if( !size || !cntBuf )
 				return 1;
 
-			pKdbgerCommPkt->kdbgerReqCmosWritePkt.address = (u8)(addr & 0xFFULL);
-			pKdbgerCommPkt->kdbgerReqCmosWritePkt.size = (u8)(size & 0xFF);
-			memcpy( &pKdbgerCommPkt->kdbgerReqCmosWritePkt.cmosContent, cntBuf, size );
-			pKdbgerCommPkt->kdbgerCommHdr.pktLen = 
-				sizeof( kdbgerReqCmosWritePkt_t ) - sizeof( s8 * ) + size; 
+			pFdkCommPkt->fdkReqCmosWritePkt.address = (u8)(addr & 0xFFULL);
+			pFdkCommPkt->fdkReqCmosWritePkt.size = (u8)(size & 0xFF);
+			memcpy( &pFdkCommPkt->fdkReqCmosWritePkt.cmosContent, cntBuf, size );
+			pFdkCommPkt->fdkCommHdr.pktLen = 
+				sizeof( fdkReqCmosWritePkt_t ) - sizeof( s8 * ) + size; 
 			break;
 
-		case KDBGER_REQ_PCI_LIST:
+		case FDK_REQ_PCI_LIST:
 
-			pKdbgerCommPkt->kdbgerCommHdr.pktLen =
-				sizeof( kdbgerReqPciWritePkt_t );
+			pFdkCommPkt->fdkCommHdr.pktLen =
+				sizeof( fdkReqPciWritePkt_t );
 			break;
 
-		case KDBGER_REQ_E820_LIST:
+		case FDK_REQ_E820_LIST:
 
-			pKdbgerCommPkt->kdbgerCommHdr.pktLen =
-				sizeof( kdbgerReqE820ListPkt_t );
+			pFdkCommPkt->fdkCommHdr.pktLen =
+				sizeof( fdkReqE820ListPkt_t );
 			break;
 
 		default:
@@ -235,15 +223,15 @@ s32 executeFunction( s32 fd, kdbgerOpCode_t op, u64 addr, u32 size, u8 *cntBuf, 
 	}
 
 	// Fill in OpCode
-	pKdbgerCommPkt->kdbgerCommHdr.opCode = op;
+	pFdkCommPkt->fdkCommHdr.opCode = op;
 
 	// Transmit the request
 #if 1
-	rwByte = write( fd, pktBuf, pKdbgerCommPkt->kdbgerCommHdr.pktLen );
+	rwByte = write( fd, pktBuf, pFdkCommPkt->fdkCommHdr.pktLen );
 #else
-	rwByte = send( fd, pktBuf, pKdbgerCommPkt->kdbgerCommHdr.pktLen, 0 );
+	rwByte = send( fd, pktBuf, pFdkCommPkt->fdkCommHdr.pktLen, 0 );
 #endif
-	if( rwByte != pKdbgerCommPkt->kdbgerCommHdr.pktLen ) {
+	if( rwByte != pFdkCommPkt->fdkCommHdr.pktLen ) {
 
 		fprintf( stderr, "Error on transmitting request wsize = %d\n", rwByte );
 		return 1;
@@ -264,7 +252,7 @@ s32 executeFunction( s32 fd, kdbgerOpCode_t op, u64 addr, u32 size, u8 *cntBuf, 
 
 
 	// Whether it valid or not
-	return verifyResponsePacket( pKdbgerCommPkt, op );
+	return verifyResponsePacket( pFdkCommPkt, op );
 }
 
 

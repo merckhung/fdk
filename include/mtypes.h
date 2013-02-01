@@ -1,12 +1,3 @@
-/*
- * Copyright (C) 2008 Olux Organization All rights reserved.
- * Author: Merck Hung <merck@gmail.com>
- *
- * File: otypes.h
- * Description:
- *  None
- *
- */
 typedef     unsigned char           u8;
 typedef     unsigned short int      u16;
 typedef     unsigned int            u32;
@@ -28,12 +19,5 @@ typedef     unsigned char           bool;
 
 
 #define		PACKED					__attribute__((packed))
-
-
-typedef struct _commonLinklist {
-
-    struct _commonLinklist  *next;
-
-} commonLinklist_t;
 
 

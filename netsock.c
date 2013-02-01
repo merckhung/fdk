@@ -7,13 +7,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <otypes.h>
-#include <packet.h>
-
-#include <ncurses.h>
-#include <panel.h>
-
-#include <lfdk.h>
+#include <mtypes.h>
+#include <fdk.h>
+#include <netsock.h>
+#include <libcomm.h>
 
 
 s32 initializeSocket( s32 *fd, s8 *addr, s32 port ) {
@@ -34,7 +31,7 @@ s32 initializeSocket( s32 *fd, s8 *addr, s32 port ) {
     
     // Default values of address & port
     if( port <= 0 )
-        port = KDBGER_DEF_PORT;
+        port = FDK_DEF_PORT;
 
     // Set address
     memset( &servaddr, 0, sizeof( struct sockaddr_in ) );
@@ -87,7 +84,7 @@ s32 connectSocket( s32 *fd, s8 *addr, s32 port ) {
     
     // Default values of address & port
     if( port <= 0 )
-        port = KDBGER_DEF_PORT;
+        port = FDK_DEF_PORT;
     
     // Set address
     memset( &servaddr, 0, sizeof( struct sockaddr_in ) );

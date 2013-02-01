@@ -1,26 +1,46 @@
-################################################################################
-#
-# Copyright (C) 2006 - 2008 Olux Organization All rights reserved.
-# Authors: Merck Hung <merck@gmail.com>
-#
-# File: Makefile
-# Description:
-#   None
-#
-################################################################################
-TARGET				=	lfdk lfdksvr
+CROSS_COMPILE       =
+AS                  =   $(CROSS_COMPILE)as
+AR                  =   $(CROSS_COMPILE)ar
+CC                  =   $(CROSS_COMPILE)gcc
+CPP                 =   $(CC) -E
+LD                  =   $(CROSS_COMPILE)ld
+NM                  =   $(CROSS_COMPILE)nm
+OBJCOPY             =   $(CROSS_COMPILE)objcopy
+OBJDUMP             =   $(CROSS_COMPILE)objdump
+RANLIB              =   $(CROSS_COMPILE)ranlib
+READELF             =   $(CROSS_COMPILE)readelf
+SIZE                =   $(CROSS_COMPILE)size
+STRINGS             =   $(CROSS_COMPILE)strings
+STRIP               =   $(CROSS_COMPILE)strip
 
-CFLAGS				=	-g3 -Wall -Iinclude
+CFLAGS				=	-Iinclude -Wall -g3
 LDFLAGS				=
 
-all: $(TARGET)
+MODULES				=	fdkd cfdk
 
-lfdk: lfdk.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -lpanel -lncurses -o $@ $< packet.c dumpPanel.c pciListPanel.c utils.c socket.c
+OBJS_COMMON			=	packet.o utils.o netsock.o libcomm.o
 
-lfdksvr: lfdksvr.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< packet.c utils.c socket.c
+OBJS_FDKD			=	fdkd.o $(OBJS_COMMON)
+CFLAGS_FDKD			=	$(CFLAGS)
+LFDLAGS_FDKD		=	$(LDFLAGS) -lpthread
+
+OBJS_CFDK			=	cfdk.o pciListPanel.o dumpPanel.o $(OBJS_COMMON)
+CFLAGS_CFDK			=	$(CFLAGS)
+LDFLAGS_CFDK		=	$(LDFLAGS) -lpanel -lncurses
+
+
+all: $(MODULES)
+
+fdkd: $(OBJS_FDKD)
+	@$(CC) $(CFLAGS_FDKD) $(LDFLAGS_FDKD) -o $@ $(OBJS_FDKD)
+
+cfdk: $(OBJS_CFDK)
+	@$(CC) $(CFLAGS_CFDK) $(LDFLAGS_CFDK) -o $@ $(OBJS_CFDK)
+
+%.o: %.c
+	@$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -f *.o $(TARGET)
+	@$(RM) -f *.o $(MODULES)
+
 

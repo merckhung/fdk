@@ -1,12 +1,3 @@
-/*
- * Copyright (C) 2011 Olux Organization All rights reserved.
- * Author: Merck Hung <merck@gmail.com>
- *
- * File: pciListPanel.c
- * Description:
- *	OluxOS Kernel Debugger
- *
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,41 +9,42 @@
 #include <time.h>
 #include <termios.h>
 
-#include <otypes.h>
-#include <olux.h>
+#include <mtypes.h>
+#include <libcomm.h>
 #include <packet.h>
 
 #include <ncurses.h>
 #include <panel.h>
 
-#include <lfdk.h>
+#include <fdk.h>
+#include <cfdk.h>
 
 
-void printPciListBasePanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
+void printPciListBasePanel( fdkUiProperty_t *pFdkUiProperty ) {
 
 	// Title
-	printWindowAt( pKdbgerUiProperty->kdbgerPciListPanel,
+	printWindowAt( pFdkUiProperty->fdkPciListPanel,
 		title, 
-		KDBGER_PCIL_TITLE_LINE,
-		KDBGER_PCIL_TITLE_COLUMN,
-		KDBGER_PCIL_TITLE_X_POS,
-		KDBGER_PCIL_TITLE_Y_POS,
+		FDK_PCIL_TITLE_LINE,
+		FDK_PCIL_TITLE_COLUMN,
+		FDK_PCIL_TITLE_X_POS,
+		FDK_PCIL_TITLE_Y_POS,
 		YELLOW_BLACK,
-		KDBGER_PCIL_TITLE );
+		FDK_PCIL_TITLE );
 }
 
 
-void printPciListUpdatePanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
+void printPciListUpdatePanel( fdkUiProperty_t *pFdkUiProperty ) {
 
-	s8 *p, buf[ KDBGER_BUF_SIZE ], hlbuf[ KDBGER_PCIL_CON_COLUMN + 1 ];
+	s8 *p, buf[ FDK_BUF_SIZE ], hlbuf[ FDK_PCIL_CON_COLUMN + 1 ];
 	s32 i;
 	s32 start, end;
 
 	// Range
-	start = pKdbgerUiProperty->kdbgerPciListPanel.pageOffset;
-	end = pKdbgerUiProperty->kdbgerPciListPanel.pageOffset + KDBGER_REC_PER_PAGE;
-	if( end > pKdbgerUiProperty->numOfPciDevice )
-		end = pKdbgerUiProperty->numOfPciDevice;
+	start = pFdkUiProperty->fdkPciListPanel.pageOffset;
+	end = pFdkUiProperty->fdkPciListPanel.pageOffset + FDK_REC_PER_PAGE;
+	if( end > pFdkUiProperty->numOfPciDevice )
+		end = pFdkUiProperty->numOfPciDevice;
 
 	// Prepare data
 	p = buf;
@@ -60,134 +52,134 @@ void printPciListUpdatePanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
 
 		// Prepare for the list
 		p += snprintf( p, 
-			(KDBGER_BUF_SIZE - (p - buf)),
-			KDBGER_PCIL_LINE_FMT,
-			(pKdbgerUiProperty->pKdbgerPciIds + i)->venTxt,
-			(pKdbgerUiProperty->pKdbgerPciIds + i)->devTxt,
-			(pKdbgerUiProperty->pKdbgerPciDev + i)->vendorId,
-			(pKdbgerUiProperty->pKdbgerPciDev + i)->deviceId,
-			(pKdbgerUiProperty->pKdbgerPciDev + i)->bus,
-			(pKdbgerUiProperty->pKdbgerPciDev + i)->dev,
-			(pKdbgerUiProperty->pKdbgerPciDev + i)->fun );
+			(FDK_BUF_SIZE - (p - buf)),
+			FDK_PCIL_LINE_FMT,
+			(pFdkUiProperty->pFdkPciIds + i)->venTxt,
+			(pFdkUiProperty->pFdkPciIds + i)->devTxt,
+			(pFdkUiProperty->pFdkPciDev + i)->vendorId,
+			(pFdkUiProperty->pFdkPciDev + i)->deviceId,
+			(pFdkUiProperty->pFdkPciDev + i)->bus,
+			(pFdkUiProperty->pFdkPciDev + i)->dev,
+			(pFdkUiProperty->pFdkPciDev + i)->fun );
 
 		// Prepare for the highlight bar
-		if( i == (pKdbgerUiProperty->kdbgerPciListPanel.hlIndex + pKdbgerUiProperty->kdbgerPciListPanel.pageOffset) )
+		if( i == (pFdkUiProperty->fdkPciListPanel.hlIndex + pFdkUiProperty->fdkPciListPanel.pageOffset) )
 			snprintf( hlbuf,
-				KDBGER_PCIL_CON_COLUMN + 1,
-				KDBGER_PCIL_LINE_FMT,
-				(pKdbgerUiProperty->pKdbgerPciIds + i)->venTxt,
-				(pKdbgerUiProperty->pKdbgerPciIds + i)->devTxt,
-				(pKdbgerUiProperty->pKdbgerPciDev + i)->vendorId,
-				(pKdbgerUiProperty->pKdbgerPciDev + i)->deviceId,
-				(pKdbgerUiProperty->pKdbgerPciDev + i)->bus,
-				(pKdbgerUiProperty->pKdbgerPciDev + i)->dev,
-				(pKdbgerUiProperty->pKdbgerPciDev + i)->fun );
+				FDK_PCIL_CON_COLUMN + 1,
+				FDK_PCIL_LINE_FMT,
+				(pFdkUiProperty->pFdkPciIds + i)->venTxt,
+				(pFdkUiProperty->pFdkPciIds + i)->devTxt,
+				(pFdkUiProperty->pFdkPciDev + i)->vendorId,
+				(pFdkUiProperty->pFdkPciDev + i)->deviceId,
+				(pFdkUiProperty->pFdkPciDev + i)->bus,
+				(pFdkUiProperty->pFdkPciDev + i)->dev,
+				(pFdkUiProperty->pFdkPciDev + i)->fun );
 	}
 
 	// Update the screen
-	printWindowAt( pKdbgerUiProperty->kdbgerPciListPanel,
+	printWindowAt( pFdkUiProperty->fdkPciListPanel,
 		content, 
-		KDBGER_PCIL_CON_LINE,
-		KDBGER_PCIL_CON_COLUMN,
-		KDBGER_PCIL_CON_X_POS,
-		KDBGER_PCIL_CON_Y_POS,
+		FDK_PCIL_CON_LINE,
+		FDK_PCIL_CON_COLUMN,
+		FDK_PCIL_CON_X_POS,
+		FDK_PCIL_CON_Y_POS,
 		WHITE_BLUE,
 		"%s",
 		buf );
 
 	// Highlight
-	printWindowMove( pKdbgerUiProperty->kdbgerPciListPanel,
+	printWindowMove( pFdkUiProperty->fdkPciListPanel,
 		highlight, 
-		KDBGER_STRING_NLINE,
-		KDBGER_PCIL_CON_COLUMN,
-		KDBGER_PCIL_CON_X_POS + pKdbgerUiProperty->kdbgerPciListPanel.hlIndex,
-		KDBGER_PCIL_CON_Y_POS,
+		FDK_STRING_NLINE,
+		FDK_PCIL_CON_COLUMN,
+		FDK_PCIL_CON_X_POS + pFdkUiProperty->fdkPciListPanel.hlIndex,
+		FDK_PCIL_CON_Y_POS,
 		BLACK_CYAN,
 		"%s",
 		hlbuf );
 }
 
 
-void clearPciListBasePanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
+void clearPciListBasePanel( fdkUiProperty_t *pFdkUiProperty ) {
 
-	destroyWindow( pKdbgerUiProperty->kdbgerPciListPanel, title );
+	destroyWindow( pFdkUiProperty->fdkPciListPanel, title );
 }
 
 
-void clearPciListUpdatePanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
+void clearPciListUpdatePanel( fdkUiProperty_t *pFdkUiProperty ) {
 
-	destroyWindow( pKdbgerUiProperty->kdbgerPciListPanel, content );
-	destroyWindow( pKdbgerUiProperty->kdbgerPciListPanel, highlight );
+	destroyWindow( pFdkUiProperty->fdkPciListPanel, content );
+	destroyWindow( pFdkUiProperty->fdkPciListPanel, highlight );
 }
 
 
-s32 handleKeyPressForPciListPanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
+s32 handleKeyPressForPciListPanel( fdkUiProperty_t *pFdkUiProperty ) {
 
-	switch( pKdbgerUiProperty->inputBuf ) {
+	switch( pFdkUiProperty->inputBuf ) {
 
 		case KBPRS_UP:
 
-			if( pKdbgerUiProperty->kdbgerPciListPanel.hlIndex )
-				pKdbgerUiProperty->kdbgerPciListPanel.hlIndex--;
+			if( pFdkUiProperty->fdkPciListPanel.hlIndex )
+				pFdkUiProperty->fdkPciListPanel.hlIndex--;
 			else
-				if( pKdbgerUiProperty->kdbgerPciListPanel.pageOffset )
-					pKdbgerUiProperty->kdbgerPciListPanel.pageOffset--;
+				if( pFdkUiProperty->fdkPciListPanel.pageOffset )
+					pFdkUiProperty->fdkPciListPanel.pageOffset--;
             break;
 
 		case KBPRS_DOWN:
 
-			if( pKdbgerUiProperty->kdbgerPciListPanel.hlIndex 
-					< (KDBGER_REC_PER_PAGE - 1) 
-				&& (pKdbgerUiProperty->kdbgerPciListPanel.pageOffset 
-					+ pKdbgerUiProperty->kdbgerPciListPanel.hlIndex) 
-				< (pKdbgerUiProperty->numOfPciDevice - 1) )
-				pKdbgerUiProperty->kdbgerPciListPanel.hlIndex++;
+			if( pFdkUiProperty->fdkPciListPanel.hlIndex 
+					< (FDK_REC_PER_PAGE - 1) 
+				&& (pFdkUiProperty->fdkPciListPanel.pageOffset 
+					+ pFdkUiProperty->fdkPciListPanel.hlIndex) 
+				< (pFdkUiProperty->numOfPciDevice - 1) )
+				pFdkUiProperty->fdkPciListPanel.hlIndex++;
 			else
-				if( (pKdbgerUiProperty->kdbgerPciListPanel.pageOffset + KDBGER_REC_PER_PAGE)
-					< pKdbgerUiProperty->numOfPciDevice )
-					pKdbgerUiProperty->kdbgerPciListPanel.pageOffset++;
+				if( (pFdkUiProperty->fdkPciListPanel.pageOffset + FDK_REC_PER_PAGE)
+					< pFdkUiProperty->numOfPciDevice )
+					pFdkUiProperty->fdkPciListPanel.pageOffset++;
             break;
 
 		case KBPRS_PGUP:
 
-			if( pKdbgerUiProperty->numOfPciDevice < KDBGER_REC_PER_PAGE )
+			if( pFdkUiProperty->numOfPciDevice < FDK_REC_PER_PAGE )
 				break;
 
-			if( pKdbgerUiProperty->kdbgerPciListPanel.pageOffset >= KDBGER_REC_PER_PAGE )
-				pKdbgerUiProperty->kdbgerPciListPanel.pageOffset -= KDBGER_REC_PER_PAGE;
+			if( pFdkUiProperty->fdkPciListPanel.pageOffset >= FDK_REC_PER_PAGE )
+				pFdkUiProperty->fdkPciListPanel.pageOffset -= FDK_REC_PER_PAGE;
 			else
-				pKdbgerUiProperty->kdbgerPciListPanel.pageOffset = 0;
+				pFdkUiProperty->fdkPciListPanel.pageOffset = 0;
 
-			pKdbgerUiProperty->kdbgerPciListPanel.hlIndex = 0;
+			pFdkUiProperty->fdkPciListPanel.hlIndex = 0;
             break;
 
 		case KBPRS_PGDN:
 
-			if( pKdbgerUiProperty->numOfPciDevice < KDBGER_REC_PER_PAGE )
+			if( pFdkUiProperty->numOfPciDevice < FDK_REC_PER_PAGE )
 				break;
 
-			if( (pKdbgerUiProperty->kdbgerPciListPanel.pageOffset + KDBGER_REC_PER_PAGE) 
-				< pKdbgerUiProperty->numOfPciDevice ) {
+			if( (pFdkUiProperty->fdkPciListPanel.pageOffset + FDK_REC_PER_PAGE) 
+				< pFdkUiProperty->numOfPciDevice ) {
 
-				pKdbgerUiProperty->kdbgerPciListPanel.pageOffset += KDBGER_REC_PER_PAGE;
-				if( (pKdbgerUiProperty->numOfPciDevice 
-					- pKdbgerUiProperty->kdbgerPciListPanel.pageOffset) 
-					< KDBGER_REC_PER_PAGE )
-					pKdbgerUiProperty->kdbgerPciListPanel.pageOffset =
-						pKdbgerUiProperty->numOfPciDevice - KDBGER_REC_PER_PAGE;
+				pFdkUiProperty->fdkPciListPanel.pageOffset += FDK_REC_PER_PAGE;
+				if( (pFdkUiProperty->numOfPciDevice 
+					- pFdkUiProperty->fdkPciListPanel.pageOffset) 
+					< FDK_REC_PER_PAGE )
+					pFdkUiProperty->fdkPciListPanel.pageOffset =
+						pFdkUiProperty->numOfPciDevice - FDK_REC_PER_PAGE;
 			}
 			else
-				pKdbgerUiProperty->kdbgerPciListPanel.pageOffset =
-					pKdbgerUiProperty->numOfPciDevice - KDBGER_REC_PER_PAGE;
+				pFdkUiProperty->fdkPciListPanel.pageOffset =
+					pFdkUiProperty->numOfPciDevice - FDK_REC_PER_PAGE;
 
-			pKdbgerUiProperty->kdbgerPciListPanel.hlIndex = KDBGER_REC_PER_PAGE - 1;
+			pFdkUiProperty->fdkPciListPanel.hlIndex = FDK_REC_PER_PAGE - 1;
             break;
 
 		case KBPRS_ENTER:
 			
-			pKdbgerUiProperty->kdbgerDumpPanel.byteBase = 
-				pKdbgerUiProperty->kdbgerPciListPanel.hlIndex + 
-				pKdbgerUiProperty->kdbgerPciListPanel.pageOffset;
+			pFdkUiProperty->fdkDumpPanel.byteBase = 
+				pFdkUiProperty->fdkPciListPanel.hlIndex + 
+				pFdkUiProperty->fdkPciListPanel.pageOffset;
 			return 1;
 
 		default:

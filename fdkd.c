@@ -9,20 +9,18 @@
 #include <signal.h>
 #include <pthread.h>
 
-#include <otypes.h>
+#include <mtypes.h>
 #include <packet.h>
-
-#include <ncurses.h>
-#include <panel.h>
-
-#include <lfdk.h>
+#include <fdk.h>
+#include <libcomm.h>
+#include <netsock.h>
 
 
 typedef struct _afdkdSvrTask {
 
-    struct _afdkdSvrTask        *next;
+    struct _afdkdSvrTask		*next;
     s32                         fd;
-    char          pktData[ AFDKD_PKTSIZE ];
+    char          				pktData[ FDK_PKTSIZE ];
 
 } afdkdSvrTask_t;
 
@@ -32,26 +30,25 @@ static afdkdSvrTask_t *afdkdSvrTaskHead = NULL;
 pthread_mutex_t taskMutexLock = PTHREAD_MUTEX_INITIALIZER;
 
 
-static void usage( void ) {
-    
-    fprintf( stderr, "\n" );
-    fprintf( stderr, "REVISION: "AFDKD_REV"\n" );
-    fprintf( stderr, "Usage: "AFDKD_NAME" [-d] | [-h]\n\n" );
+static void help( void ) {
+
+    fprintf( stderr, "\n" FDK_COPYRIGHT_TEXT "\n\n" );
+    fprintf( stderr, FDKD_PROGRAM_NAME ", Version " FDK_REVISION "\n" );
+    fprintf( stderr, "Author: " FDK_AUTHOR_NAME "\n" );
+    fprintf( stderr, "help: fdkd [-d | -h]\n\n" );
     fprintf( stderr, "\t-d\tDon't run as daemon.\n" );
-    fprintf( stderr, "\t-h\tprint this message.\n");
-    fprintf( stderr, "\n");
+    fprintf( stderr, "\t-h\tPrint help and exit\n\n");
 }
 
 
 s32 main( s32 argc, s8 **argv ) {
     
-    s32 sts;
     s8 c;
     s32 daemon = 1, terminate = 0;
     pid_t pid, sid;
     
     s32 sfd, cfd;
-    s8 packet[ AFDKD_PKTSIZE ];
+    s8 packet[ FDK_PKTSIZE ];
     afdkdSvrTask_t *pAfdkdSvrTask;
     
 
@@ -65,7 +62,7 @@ s32 main( s32 argc, s8 **argv ) {
                 
             default:
             case 'h':
-                usage();
+                help();
                 return 0;
         }
     }
@@ -104,7 +101,7 @@ s32 main( s32 argc, s8 **argv ) {
     
     
     // Open a socket
-    if( initializeSocket( &sfd, NULL, AFDKD_SERVER_PORT ) ) {
+    if( initializeSocket( &sfd, NULL, FDK_DEF_PORT ) ) {
         
         fprintf( stderr, "Cannot open socket\n" );
         return -1;
@@ -119,10 +116,10 @@ s32 main( s32 argc, s8 **argv ) {
             continue;
         
         // Clear buffer
-        memset( packet, 0, AFDKD_PKTSIZE );
+        memset( packet, 0, FDK_PKTSIZE );
         
         // Read incoming data
-        if( receiveSocket( cfd, packet, AFDKD_PKTSIZE ) == FALSE ) {
+        if( receiveSocket( cfd, packet, FDK_PKTSIZE ) == FALSE ) {
             
             // Allocate a task
             pAfdkdSvrTask = (afdkdSvrTask_t *)malloc( sizeof( afdkdSvrTask_t ) );
@@ -134,10 +131,10 @@ s32 main( s32 argc, s8 **argv ) {
             
             // Clear buffer
             pAfdkdSvrTask->next = NULL;
-            memcpy( pAfdkdSvrTask->pktData, packet, AFDKD_PKTSIZE );
+            memcpy( pAfdkdSvrTask->pktData, packet, FDK_PKTSIZE );
 
 			printf( "\n======= PLAY RECV START =================================\n" );
-			dumpData( (u32 *)packet, AFDKD_PKTSIZE, 0x0 );
+			DumpData( packet, FDK_PKTSIZE, 0x0 );
 			printf( "\n======= PLAY RECV END    =================================\n" );
             
 #if 0

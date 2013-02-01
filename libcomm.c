@@ -1,12 +1,3 @@
-/*
- * Copyright (C) 2008 Olux Organization All rights reserved.
- * Author: Merck Hung <merck@gmail.com>
- *
- * File: libcomm.c
- * Description:
- *  None
- *
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,8 +8,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <otypes.h>
-#include <olux.h>
+#include <mtypes.h>
+#include <libcomm.h>
 
 
 s32 CbPower( s32 x, s32 y ) {
@@ -240,41 +231,41 @@ void DisplayInBits( u32 value ) {
     printf( "31 30 29 28 27 26 25 24|23 22 21 20 19 18 17 16|15 14 13 12 11 10 09 08|07 06 05 04 03 02 01 00\n" );
     printf( "-----------------------------------------------------------------------------------------------\n" );
     printf( " %d  %d  %d  %d  %d  %d  %d  %d| %d  %d  %d  %d  %d  %d  %d  %d| %d  %d  %d  %d  %d  %d  %d  %d| %d  %d  %d  %d  %d  %d  %d  %d\n"
-        , OLUX_GET_BIT( value, 31 )
-        , OLUX_GET_BIT( value, 30 )
+        , FDK_GET_BIT( value, 31 )
+        , FDK_GET_BIT( value, 30 )
 
-        , OLUX_GET_BIT( value, 29 )
-        , OLUX_GET_BIT( value, 28 )
-        , OLUX_GET_BIT( value, 27 )
-        , OLUX_GET_BIT( value, 26 )
-        , OLUX_GET_BIT( value, 25 )
-        , OLUX_GET_BIT( value, 24 )
-        , OLUX_GET_BIT( value, 23 )
-        , OLUX_GET_BIT( value, 22 )
-        , OLUX_GET_BIT( value, 21 )
-        , OLUX_GET_BIT( value, 20 )
+        , FDK_GET_BIT( value, 29 )
+        , FDK_GET_BIT( value, 28 )
+        , FDK_GET_BIT( value, 27 )
+        , FDK_GET_BIT( value, 26 )
+        , FDK_GET_BIT( value, 25 )
+        , FDK_GET_BIT( value, 24 )
+        , FDK_GET_BIT( value, 23 )
+        , FDK_GET_BIT( value, 22 )
+        , FDK_GET_BIT( value, 21 )
+        , FDK_GET_BIT( value, 20 )
 
-        , OLUX_GET_BIT( value, 19 )
-        , OLUX_GET_BIT( value, 18 )
-        , OLUX_GET_BIT( value, 17 )
-        , OLUX_GET_BIT( value, 16 )
-        , OLUX_GET_BIT( value, 15 )
-        , OLUX_GET_BIT( value, 14 )
-        , OLUX_GET_BIT( value, 13 )
-        , OLUX_GET_BIT( value, 12 )
-        , OLUX_GET_BIT( value, 11 )
-        , OLUX_GET_BIT( value, 10 )
+        , FDK_GET_BIT( value, 19 )
+        , FDK_GET_BIT( value, 18 )
+        , FDK_GET_BIT( value, 17 )
+        , FDK_GET_BIT( value, 16 )
+        , FDK_GET_BIT( value, 15 )
+        , FDK_GET_BIT( value, 14 )
+        , FDK_GET_BIT( value, 13 )
+        , FDK_GET_BIT( value, 12 )
+        , FDK_GET_BIT( value, 11 )
+        , FDK_GET_BIT( value, 10 )
 
-        , OLUX_GET_BIT( value, 9 )
-        , OLUX_GET_BIT( value, 8 )
-        , OLUX_GET_BIT( value, 7 )
-        , OLUX_GET_BIT( value, 6 )
-        , OLUX_GET_BIT( value, 5 )
-        , OLUX_GET_BIT( value, 4 )
-        , OLUX_GET_BIT( value, 3 )
-        , OLUX_GET_BIT( value, 2 )
-        , OLUX_GET_BIT( value, 1 )
-        , OLUX_GET_BIT( value, 0 ) );
+        , FDK_GET_BIT( value, 9 )
+        , FDK_GET_BIT( value, 8 )
+        , FDK_GET_BIT( value, 7 )
+        , FDK_GET_BIT( value, 6 )
+        , FDK_GET_BIT( value, 5 )
+        , FDK_GET_BIT( value, 4 )
+        , FDK_GET_BIT( value, 3 )
+        , FDK_GET_BIT( value, 2 )
+        , FDK_GET_BIT( value, 1 )
+        , FDK_GET_BIT( value, 0 ) );
 
     printf( "===============================================================================================\n\n" );
 }
@@ -283,7 +274,7 @@ void DisplayInBits( u32 value ) {
 void ClrScr( void ) {
 
 	s32 ret;
-	ret = write( OLUX_STD_OUT, OLUX_CLEAR_SCREEN, strlen( OLUX_CLEAR_SCREEN ) );
+	ret = write( FDK_STD_OUT, FDK_CLEAR_SCREEN, strlen( FDK_CLEAR_SCREEN ) );
 }
 
 
@@ -291,11 +282,11 @@ s8 NonBlockReadKey( void ) {
 
     s8 c;
 
-    fcntl( OLUX_STD_IN, F_SETFL, O_NONBLOCK );
+    fcntl( FDK_STD_IN, F_SETFL, O_NONBLOCK );
 
     c = GetKey();
 
-    fcntl( OLUX_STD_IN, F_SETFL, O_ASYNC );
+    fcntl( FDK_STD_IN, F_SETFL, O_ASYNC );
 
     return c;
 }
@@ -336,7 +327,7 @@ s8 GetKey( void ) {
     s8 c;
     struct termios orig, new;
 
-    if( tcgetattr( OLUX_STD_IN, &orig ) )
+    if( tcgetattr( FDK_STD_IN, &orig ) )
         return 0;
 
     memcpy( &new, &orig, sizeof( struct termios ) );
@@ -345,14 +336,134 @@ s8 GetKey( void ) {
     new.c_cc[ VMIN ] = 1;
     new.c_cc[ VTIME ] = 0;
 
-    if( tcsetattr( OLUX_STD_IN, TCSAFLUSH, &new ) )
+    if( tcsetattr( FDK_STD_IN, TCSAFLUSH, &new ) )
         return 0;
 
-    ret = read( OLUX_STD_IN, &c, 1 );
-    if( tcsetattr( OLUX_STD_IN, TCSAFLUSH, &orig ) )
+    ret = read( FDK_STD_IN, &c, 1 );
+    if( tcsetattr( FDK_STD_IN, TCSAFLUSH, &orig ) )
         return 0;
 
     return c;
+}
+
+
+s32 isIPv4Format( const s8 *str ) {
+
+    s32 i, j, pos[ 3 ], len;
+    s8 buf[ IP_STR_BUF ];
+    u32 addr[ 4 ];
+    s32 valid = 0;
+    
+    // Length check
+    len = strlen( str );
+    if( len > IP_STR_LEN || len < IP_STR_LEN_MIN )
+        return -1;
+    strncpy( buf, str, IP_STR_BUF );
+    
+    // Look for positions of delimiters
+    for( i = 0, j = 0 ; i < len ; i++ ) {
+        
+        if( buf[ i ] == '.' ) {
+            
+            // Exceed the limit
+            if( j >= 3 )
+                return -1;
+            
+            // Record & Terminate string
+            pos[ j ] = i;
+            buf[ i ] = 0;
+            j++;
+        }
+    }
+    
+    // Must have 3 dots at least or at most
+    if( j != 3 )
+        return -1;
+    
+    // Convert strings
+    addr[ 0 ] = strtol( (const char *)&buf[ 0 ], NULL, 10 );
+    addr[ 1 ] = strtol( (const char *)&buf[ pos[ 0 ] + 1 ], NULL, 10 );
+    addr[ 2 ] = strtol( (const char *)&buf[ pos[ 1 ] + 1 ], NULL, 10 );
+    addr[ 3 ] = strtol( (const char *)&buf[ pos[ 2 ] + 1 ], NULL, 10 );
+    
+    // Check range
+    for( i = 0 ; i < 4 ; i++ )
+        if( addr[ i ] > 255 ) {
+            
+            valid = -1;
+            break;
+        }
+    
+    // Not ZERO
+    snprintf( buf, IP_STR_BUF, "%d.%d.%d.%d", addr[ 0 ], addr[ 1 ], addr[ 2 ], addr[ 3 ] );
+    if( strcmp( buf, str ) )
+        valid = -1;
+    
+    return valid;
+}
+
+
+int countLinklist( commonLinklist_t *head ) {
+    
+    int i;
+    
+    for( i = 0 ; head ; head = head->next, i++ );
+    return i;
+}
+
+
+commonLinklist_t **tailOfLinklist( commonLinklist_t **head ) {
+    
+    commonLinklist_t **ppCommonLinklist;
+    
+    if( !*head )
+        return head;
+    
+    for( ppCommonLinklist = head ;
+        (*ppCommonLinklist)->next ;
+        ppCommonLinklist = &((*ppCommonLinklist)->next) );
+    
+    return ppCommonLinklist;
+}
+
+
+void appendLinklist( commonLinklist_t **head, commonLinklist_t *object ) {
+    
+    commonLinklist_t **ppCommonLinklist;
+    
+    ppCommonLinklist = tailOfLinklist( head );
+    if( *ppCommonLinklist )
+        (*ppCommonLinklist)->next = object;
+    else
+        *head = object;
+}
+
+
+commonLinklist_t *retriveFirstLinklist( commonLinklist_t **head ) {
+    
+    commonLinklist_t *pCommonLinklist = *head;
+    
+    if( !*head )
+        return NULL;
+    
+    if( (*head)->next )
+        *head = (*head)->next;
+    else
+        *head = NULL;
+    
+    return pCommonLinklist;
+}
+
+
+void freeLinklist( commonLinklist_t *head ) {
+    
+    commonLinklist_t *prev;
+    for( ; head ; ) {
+        
+        prev = head;
+        head = head->next;
+        free( prev );
+    }
 }
 
 

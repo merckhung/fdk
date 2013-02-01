@@ -1,12 +1,3 @@
-/*
- * Copyright (C) 2011 Olux Organization All rights reserved.
- * Author: Merck Hung <merck@gmail.com>
- *
- * File: dumpPanel.c
- * Description:
- *	OluxOS Kernel Debugger
- *
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,107 +9,108 @@
 #include <time.h>
 #include <termios.h>
 
-#include <otypes.h>
-#include <olux.h>
+#include <mtypes.h>
+#include <libcomm.h>
 #include <packet.h>
 
 #include <ncurses.h>
 #include <panel.h>
 
-#include <lfdk.h>
+#include <fdk.h>
+#include <cfdk.h>
 
 
 static u32 editorColorCount = 0;
 
 
-void printDumpBasePanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
+void printDumpBasePanel( fdkUiProperty_t *pFdkUiProperty ) {
 
 	// Print Top bar
-	printWindowAt( pKdbgerUiProperty->kdbgerDumpPanel,
+	printWindowAt( pFdkUiProperty->fdkDumpPanel,
 		top, 
-		KDBGER_STRING_NLINE,
-		strlen( KDBGER_DUMP_TOP_BAR ),
-		KDBGER_DUMP_TOP_LINE,
-		KDBGER_DUMP_TOP_COLUMN,
+		FDK_STRING_NLINE,
+		strlen( FDK_DUMP_TOP_BAR ),
+		FDK_DUMP_TOP_LINE,
+		FDK_DUMP_TOP_COLUMN,
 		GREEN_BLUE,
-		KDBGER_DUMP_TOP_BAR );
+		FDK_DUMP_TOP_BAR );
 
 	// Print Rtop bar
-	if( pKdbgerUiProperty->kdbgerHwFunc != KHF_PCI )
-		printWindowAt( pKdbgerUiProperty->kdbgerDumpPanel,
+	if( pFdkUiProperty->fdkHwFunc != KHF_PCI )
+		printWindowAt( pFdkUiProperty->fdkDumpPanel,
 			rtop, 
-			KDBGER_STRING_NLINE,
-			KDBGER_DUMP_BYTE_PER_LINE,
-			KDBGER_DUMP_RTOP_LINE,
-			KDBGER_DUMP_RTOP_COLUMN,
+			FDK_STRING_NLINE,
+			FDK_DUMP_BYTE_PER_LINE,
+			FDK_DUMP_RTOP_LINE,
+			FDK_DUMP_RTOP_COLUMN,
 			RED_BLUE,
-			KDBGER_DUMP_RTOP_BAR );
+			FDK_DUMP_RTOP_BAR );
 
 	// Print Left bar
-	printWindowAt( pKdbgerUiProperty->kdbgerDumpPanel,
+	printWindowAt( pFdkUiProperty->fdkDumpPanel,
 		left,
-		KDBGER_DUMP_BYTE_PER_LINE,
+		FDK_DUMP_BYTE_PER_LINE,
 		4,
-		KDBGER_DUMP_LEFT_LINE,
-		KDBGER_DUMP_LEFT_COLUMN,
+		FDK_DUMP_LEFT_LINE,
+		FDK_DUMP_LEFT_COLUMN,
 		GREEN_BLUE,
-		KDBGER_DUMP_LEFT_BAR );
+		FDK_DUMP_LEFT_BAR );
 
 	// Print Info base
-	printWindowAt( pKdbgerUiProperty->kdbgerDumpPanel,
+	printWindowAt( pFdkUiProperty->fdkDumpPanel,
 		info,
-		KDBGER_STRING_NLINE,
-		KDBGER_MAX_COLUMN,
-		KDBGER_INFO_LINE,
-		KDBGER_INFO_COLUMN,
+		FDK_STRING_NLINE,
+		FDK_MAX_COLUMN,
+		FDK_INFO_LINE,
+		FDK_INFO_COLUMN,
 		WHITE_BLUE,
 		"%s",
-		pKdbgerUiProperty->kdbgerDumpPanel.infoStr );
+		pFdkUiProperty->fdkDumpPanel.infoStr );
 }
 
 
-void printDumpUpdatePanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
+void printDumpUpdatePanel( fdkUiProperty_t *pFdkUiProperty ) {
 
 	s32 i, x, y, color;
-	u8 valueBuf[ KDBGER_DUMP_VBUF_SZ + 1 ];
-	u8 asciiBuf[ KDBGER_DUMP_ABUF_SZ + 1 ];
+	u8 valueBuf[ FDK_DUMP_VBUF_SZ + 1 ];
+	u8 asciiBuf[ FDK_DUMP_ABUF_SZ + 1 ];
 	u8 *vp = valueBuf, *ap = asciiBuf;
 	u8 *dataPtr, *pDataPtr;
-	kdbgerPciDev_t *pKdbgerPciDev;
-	kdbgerPciConfig_t *pKdbgerPciConfig;
+	fdkPciDev_t *pFdkPciDev;
+	fdkPciConfig_t *pFdkPciConfig;
 	s8 *mem = "Mem", *io = "I/O";
 
-	switch( pKdbgerUiProperty->kdbgerHwFunc ) {
+	switch( pFdkUiProperty->fdkHwFunc ) {
 
 		case KHF_PCI:
-			dataPtr = (u8 *)&pKdbgerUiProperty->pKdbgerCommPkt->kdbgerRspPciReadPkt.pciContent;
+			dataPtr = (u8 *)&pFdkUiProperty->pFdkCommPkt->fdkRspPciReadPkt.pciContent;
 			break;
 
 		case KHF_IO:
-			dataPtr = (u8 *)&pKdbgerUiProperty->pKdbgerCommPkt->kdbgerRspIoReadPkt.ioContent;
+			dataPtr = (u8 *)&pFdkUiProperty->pFdkCommPkt->fdkRspIoReadPkt.ioContent;
 			break;
 
 		case KHF_IDE:
-			dataPtr = (u8 *)&pKdbgerUiProperty->pKdbgerCommPkt->kdbgerRspIdeReadPkt.ideContent;
+			dataPtr = (u8 *)&pFdkUiProperty->pFdkCommPkt->fdkRspIdeReadPkt.ideContent;
 			break;
 
 		case KHF_CMOS:
-			dataPtr = (u8 *)&pKdbgerUiProperty->pKdbgerCommPkt->kdbgerRspCmosReadPkt.cmosContent;
+			dataPtr = (u8 *)&pFdkUiProperty->pFdkCommPkt->fdkRspCmosReadPkt.cmosContent;
 			break;
 
 		default:
 		case KHF_MEM:
-			dataPtr = (u8 *)&pKdbgerUiProperty->pKdbgerCommPkt->kdbgerRspMemReadPkt.memContent;
+			dataPtr = (u8 *)&pFdkUiProperty->pFdkCommPkt->fdkRspMemReadPkt.memContent;
 		break;
 	}
 	pDataPtr = dataPtr;
 
 	// Terminate buffers
-	valueBuf[ KDBGER_DUMP_VBUF_SZ ] = 0;
-	asciiBuf[ KDBGER_DUMP_ABUF_SZ ] = 0;
+	valueBuf[ FDK_DUMP_VBUF_SZ ] = 0;
+	asciiBuf[ FDK_DUMP_ABUF_SZ ] = 0;
 
 	// Format data for value & ascii
-	for( i = 0 ; i < KDBGER_DUMP_BYTE_PER_LINE ; i++ ) {
+	for( i = 0 ; i < FDK_DUMP_BYTE_PER_LINE ; i++ ) {
 		 
 		vp += sprintf( (s8 *)vp,
 		"%2.2X %2.2X %2.2X %2.2X %2.2X %2.2X %2.2X %2.2X %2.2X %2.2X %2.2X %2.2X %2.2X %2.2X %2.2X %2.2X",
@@ -126,33 +118,33 @@ void printDumpUpdatePanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
 		dataPtr[ 7 ], dataPtr[ 8 ], dataPtr[ 9 ], dataPtr[ 10 ], dataPtr[ 11 ], dataPtr[ 12 ], dataPtr[ 13 ],
 		dataPtr[ 14 ], dataPtr[ 15 ] );
 
-		if( pKdbgerUiProperty->kdbgerHwFunc != KHF_PCI )
+		if( pFdkUiProperty->fdkHwFunc != KHF_PCI )
 			ap += sprintf( (s8 *)ap,
 			"%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c",
-			KDBGER_DUMP_ASCII_FILTER( dataPtr[ 0 ] ),
-			KDBGER_DUMP_ASCII_FILTER( dataPtr[ 1 ] ),
-        	KDBGER_DUMP_ASCII_FILTER( dataPtr[ 2 ] ),
-        	KDBGER_DUMP_ASCII_FILTER( dataPtr[ 3 ] ),
-        	KDBGER_DUMP_ASCII_FILTER( dataPtr[ 4 ] ),
-        	KDBGER_DUMP_ASCII_FILTER( dataPtr[ 5 ] ),
-        	KDBGER_DUMP_ASCII_FILTER( dataPtr[ 6 ] ),
-        	KDBGER_DUMP_ASCII_FILTER( dataPtr[ 7 ] ),
-        	KDBGER_DUMP_ASCII_FILTER( dataPtr[ 8 ] ),
-        	KDBGER_DUMP_ASCII_FILTER( dataPtr[ 9 ] ),
-        	KDBGER_DUMP_ASCII_FILTER( dataPtr[ 10 ] ),
-        	KDBGER_DUMP_ASCII_FILTER( dataPtr[ 11 ] ),
-        	KDBGER_DUMP_ASCII_FILTER( dataPtr[ 12 ] ),
-        	KDBGER_DUMP_ASCII_FILTER( dataPtr[ 13 ] ),
-        	KDBGER_DUMP_ASCII_FILTER( dataPtr[ 14 ] ),
-        	KDBGER_DUMP_ASCII_FILTER( dataPtr[ 15 ] ) );
+			FDK_DUMP_ASCII_FILTER( dataPtr[ 0 ] ),
+			FDK_DUMP_ASCII_FILTER( dataPtr[ 1 ] ),
+        	FDK_DUMP_ASCII_FILTER( dataPtr[ 2 ] ),
+        	FDK_DUMP_ASCII_FILTER( dataPtr[ 3 ] ),
+        	FDK_DUMP_ASCII_FILTER( dataPtr[ 4 ] ),
+        	FDK_DUMP_ASCII_FILTER( dataPtr[ 5 ] ),
+        	FDK_DUMP_ASCII_FILTER( dataPtr[ 6 ] ),
+        	FDK_DUMP_ASCII_FILTER( dataPtr[ 7 ] ),
+        	FDK_DUMP_ASCII_FILTER( dataPtr[ 8 ] ),
+        	FDK_DUMP_ASCII_FILTER( dataPtr[ 9 ] ),
+        	FDK_DUMP_ASCII_FILTER( dataPtr[ 10 ] ),
+        	FDK_DUMP_ASCII_FILTER( dataPtr[ 11 ] ),
+        	FDK_DUMP_ASCII_FILTER( dataPtr[ 12 ] ),
+        	FDK_DUMP_ASCII_FILTER( dataPtr[ 13 ] ),
+        	FDK_DUMP_ASCII_FILTER( dataPtr[ 14 ] ),
+        	FDK_DUMP_ASCII_FILTER( dataPtr[ 15 ] ) );
 
 		// Move to next line
-		dataPtr += KDBGER_DUMP_BYTE_PER_LINE;
+		dataPtr += FDK_DUMP_BYTE_PER_LINE;
 	}
 
-	if( pKdbgerUiProperty->kdbgerHwFunc == KHF_PCI ) {
+	if( pFdkUiProperty->fdkHwFunc == KHF_PCI ) {
 
-		pKdbgerPciConfig = (kdbgerPciConfig_t *)pDataPtr;
+		pFdkPciConfig = (fdkPciConfig_t *)pDataPtr;
 		sprintf( (s8 *)ap,
 			"VEN ID: %4.4Xh\n"
 			"DEV ID: %4.4Xh\n\n"
@@ -166,157 +158,157 @@ void printDumpUpdatePanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
 			"%s: %8.8Xh\n"
 			"%s: %8.8Xh\n\n"
 			"ROM: %8.8Xh\n",
-			pKdbgerPciConfig->vendorId,
-			pKdbgerPciConfig->deviceId,
-			pKdbgerPciConfig->revisionId,
-			pKdbgerPciConfig->intLine,
-			pKdbgerPciConfig->intPin,
+			pFdkPciConfig->vendorId,
+			pFdkPciConfig->deviceId,
+			pFdkPciConfig->revisionId,
+			pFdkPciConfig->intLine,
+			pFdkPciConfig->intPin,
 
-			(pKdbgerPciConfig->baseAddrReg0 & KDBGER_PCIBAR_IO) ? io : mem,
-			(pKdbgerPciConfig->baseAddrReg0 & KDBGER_PCIBAR_IO) ?
-				(pKdbgerPciConfig->baseAddrReg0 & KDBGER_PCIBAR_IOBA_MASK) :
-				(pKdbgerPciConfig->baseAddrReg0 & KDBGER_PCIBAR_MEMBA_MASK),
+			(pFdkPciConfig->baseAddrReg0 & FDK_PCIBAR_IO) ? io : mem,
+			(pFdkPciConfig->baseAddrReg0 & FDK_PCIBAR_IO) ?
+				(pFdkPciConfig->baseAddrReg0 & FDK_PCIBAR_IOBA_MASK) :
+				(pFdkPciConfig->baseAddrReg0 & FDK_PCIBAR_MEMBA_MASK),
 
-			(pKdbgerPciConfig->baseAddrReg1 & KDBGER_PCIBAR_IO) ? io : mem,
-            (pKdbgerPciConfig->baseAddrReg1 & KDBGER_PCIBAR_IO) ?
-                (pKdbgerPciConfig->baseAddrReg1 & KDBGER_PCIBAR_IOBA_MASK) :
-                (pKdbgerPciConfig->baseAddrReg1 & KDBGER_PCIBAR_MEMBA_MASK),
+			(pFdkPciConfig->baseAddrReg1 & FDK_PCIBAR_IO) ? io : mem,
+            (pFdkPciConfig->baseAddrReg1 & FDK_PCIBAR_IO) ?
+                (pFdkPciConfig->baseAddrReg1 & FDK_PCIBAR_IOBA_MASK) :
+                (pFdkPciConfig->baseAddrReg1 & FDK_PCIBAR_MEMBA_MASK),
 
-			(pKdbgerPciConfig->baseAddrReg2 & KDBGER_PCIBAR_IO) ? io : mem,
-            (pKdbgerPciConfig->baseAddrReg2 & KDBGER_PCIBAR_IO) ?
-                (pKdbgerPciConfig->baseAddrReg2 & KDBGER_PCIBAR_IOBA_MASK) :
-                (pKdbgerPciConfig->baseAddrReg2 & KDBGER_PCIBAR_MEMBA_MASK),
+			(pFdkPciConfig->baseAddrReg2 & FDK_PCIBAR_IO) ? io : mem,
+            (pFdkPciConfig->baseAddrReg2 & FDK_PCIBAR_IO) ?
+                (pFdkPciConfig->baseAddrReg2 & FDK_PCIBAR_IOBA_MASK) :
+                (pFdkPciConfig->baseAddrReg2 & FDK_PCIBAR_MEMBA_MASK),
 
-			(pKdbgerPciConfig->baseAddrReg3 & KDBGER_PCIBAR_IO) ? io : mem,
-            (pKdbgerPciConfig->baseAddrReg3 & KDBGER_PCIBAR_IO) ?
-                (pKdbgerPciConfig->baseAddrReg3 & KDBGER_PCIBAR_IOBA_MASK) :
-                (pKdbgerPciConfig->baseAddrReg3 & KDBGER_PCIBAR_MEMBA_MASK),
+			(pFdkPciConfig->baseAddrReg3 & FDK_PCIBAR_IO) ? io : mem,
+            (pFdkPciConfig->baseAddrReg3 & FDK_PCIBAR_IO) ?
+                (pFdkPciConfig->baseAddrReg3 & FDK_PCIBAR_IOBA_MASK) :
+                (pFdkPciConfig->baseAddrReg3 & FDK_PCIBAR_MEMBA_MASK),
 
-			(pKdbgerPciConfig->baseAddrReg4 & KDBGER_PCIBAR_IO) ? io : mem,
-            (pKdbgerPciConfig->baseAddrReg4 & KDBGER_PCIBAR_IO) ?
-                (pKdbgerPciConfig->baseAddrReg4 & KDBGER_PCIBAR_IOBA_MASK) :
-                (pKdbgerPciConfig->baseAddrReg4 & KDBGER_PCIBAR_MEMBA_MASK),
+			(pFdkPciConfig->baseAddrReg4 & FDK_PCIBAR_IO) ? io : mem,
+            (pFdkPciConfig->baseAddrReg4 & FDK_PCIBAR_IO) ?
+                (pFdkPciConfig->baseAddrReg4 & FDK_PCIBAR_IOBA_MASK) :
+                (pFdkPciConfig->baseAddrReg4 & FDK_PCIBAR_MEMBA_MASK),
 
-			(pKdbgerPciConfig->baseAddrReg5 & KDBGER_PCIBAR_IO) ? io : mem,
-            (pKdbgerPciConfig->baseAddrReg5 & KDBGER_PCIBAR_IO) ?
-                (pKdbgerPciConfig->baseAddrReg5 & KDBGER_PCIBAR_IOBA_MASK) :
-                (pKdbgerPciConfig->baseAddrReg5 & KDBGER_PCIBAR_MEMBA_MASK),
+			(pFdkPciConfig->baseAddrReg5 & FDK_PCIBAR_IO) ? io : mem,
+            (pFdkPciConfig->baseAddrReg5 & FDK_PCIBAR_IO) ?
+                (pFdkPciConfig->baseAddrReg5 & FDK_PCIBAR_IOBA_MASK) :
+                (pFdkPciConfig->baseAddrReg5 & FDK_PCIBAR_MEMBA_MASK),
 
-			pKdbgerPciConfig->expRomBaseAddr );
+			pFdkPciConfig->expRomBaseAddr );
 	}
 
 	// Print value
 	printWindowAt(
-		pKdbgerUiProperty->kdbgerDumpPanel,
+		pFdkUiProperty->fdkDumpPanel,
 		value, 
-		KDBGER_DUMP_BYTE_PER_LINE,
-		KDBGER_DUMP_BUF_PER_LINE,
-		KDBGER_DUMP_VALUE_LINE,
-		KDBGER_DUMP_VALUE_COLUMN,
+		FDK_DUMP_BYTE_PER_LINE,
+		FDK_DUMP_BUF_PER_LINE,
+		FDK_DUMP_VALUE_LINE,
+		FDK_DUMP_VALUE_COLUMN,
 		WHITE_BLUE,
 		"%s",
 		valueBuf );
 
 	// Print ASCII
 	printWindowAt(
-		pKdbgerUiProperty->kdbgerDumpPanel,
+		pFdkUiProperty->fdkDumpPanel,
 		ascii,
-		KDBGER_DUMP_BYTE_PER_LINE,
-		KDBGER_DUMP_BYTE_PER_LINE,
-		KDBGER_DUMP_ASCII_LINE,
-		KDBGER_DUMP_ASCII_COLUMN,
+		FDK_DUMP_BYTE_PER_LINE,
+		FDK_DUMP_BYTE_PER_LINE,
+		FDK_DUMP_ASCII_LINE,
+		FDK_DUMP_ASCII_COLUMN,
 		WHITE_BLUE,
 		"%s",
 		asciiBuf );
 
 	// Print Offset bar
 	printWindowAt(
-		pKdbgerUiProperty->kdbgerDumpPanel,
+		pFdkUiProperty->fdkDumpPanel,
 		offset, 
-		KDBGER_STRING_NLINE,
+		FDK_STRING_NLINE,
 		4,
-		KDBGER_DUMP_OFF_LINE,
-		KDBGER_DUMP_OFF_COLUMN,
+		FDK_DUMP_OFF_LINE,
+		FDK_DUMP_OFF_COLUMN,
 		YELLOW_BLUE,
 		"%4.4X",
-		pKdbgerUiProperty->kdbgerDumpPanel.byteOffset );
+		pFdkUiProperty->fdkDumpPanel.byteOffset );
 
 	// Print base address & First/Second title
-	switch( pKdbgerUiProperty->kdbgerHwFunc ) {
+	switch( pFdkUiProperty->fdkHwFunc ) {
 
 		default:
 		case KHF_MEM:
 
 			// Base address
 			printWindowAt(
-				pKdbgerUiProperty->kdbgerDumpPanel,
+				pFdkUiProperty->fdkDumpPanel,
 				baseaddr, 
-				KDBGER_STRING_NLINE,
+				FDK_STRING_NLINE,
 				20,
-				KDBGER_DUMP_BASEADDR_LINE,
-				strlen( pKdbgerUiProperty->kdbgerDumpPanel.infoStr ),
+				FDK_DUMP_BASEADDR_LINE,
+				strlen( pFdkUiProperty->fdkDumpPanel.infoStr ),
 				WHITE_BLUE,
-				KDBGER_INFO_MEMORY_BASE_FMT,
-				(u32)(pKdbgerUiProperty->kdbgerDumpPanel.byteBase >> 32),
-				(u32)(pKdbgerUiProperty->kdbgerDumpPanel.byteBase & 0xFFFFFFFFULL) );
+				FDK_INFO_MEMORY_BASE_FMT,
+				(u32)(pFdkUiProperty->fdkDumpPanel.byteBase >> 32),
+				(u32)(pFdkUiProperty->fdkDumpPanel.byteBase & 0xFFFFFFFFULL) );
 			break;
 
 		case KHF_IO:
 
 			// Base address
 			printWindowAt(
-				pKdbgerUiProperty->kdbgerDumpPanel,
+				pFdkUiProperty->fdkDumpPanel,
 				baseaddr, 
-				KDBGER_STRING_NLINE,
+				FDK_STRING_NLINE,
 				5,
-				KDBGER_DUMP_BASEADDR_LINE,
-				strlen( pKdbgerUiProperty->kdbgerDumpPanel.infoStr ),
+				FDK_DUMP_BASEADDR_LINE,
+				strlen( pFdkUiProperty->fdkDumpPanel.infoStr ),
 				WHITE_BLUE,
-				KDBGER_INFO_IO_BASE_FMT,
-				(u32)(pKdbgerUiProperty->kdbgerDumpPanel.byteBase & 0x0000FFFFULL) );
+				FDK_INFO_IO_BASE_FMT,
+				(u32)(pFdkUiProperty->fdkDumpPanel.byteBase & 0x0000FFFFULL) );
 			break;
 
 		case KHF_PCI:
 
 			// Base address
-			pKdbgerPciDev = getPciDevice( pKdbgerUiProperty, 
-							pKdbgerUiProperty->kdbgerDumpPanel.byteBase );
-			if( pKdbgerPciDev )
+			pFdkPciDev = getPciDevice( pFdkUiProperty, 
+							pFdkUiProperty->fdkDumpPanel.byteBase );
+			if( pFdkPciDev )
 				printWindowAt(
-					pKdbgerUiProperty->kdbgerDumpPanel,
+					pFdkUiProperty->fdkDumpPanel,
 					baseaddr, 
-					KDBGER_STRING_NLINE,
+					FDK_STRING_NLINE,
 					29,
-					KDBGER_DUMP_BASEADDR_LINE,
-					strlen( pKdbgerUiProperty->kdbgerDumpPanel.infoStr ),
+					FDK_DUMP_BASEADDR_LINE,
+					strlen( pFdkUiProperty->fdkDumpPanel.infoStr ),
 					WHITE_BLUE,
-					KDBGER_INFO_PCI_BASE_FMT,
-					pKdbgerPciDev->bus, pKdbgerPciDev->dev, pKdbgerPciDev->fun );
+					FDK_INFO_PCI_BASE_FMT,
+					pFdkPciDev->bus, pFdkPciDev->dev, pFdkPciDev->fun );
 
 			// PCI first/second title
 			printWindowMove(
-				pKdbgerUiProperty->kdbgerDumpPanel,
+				pFdkUiProperty->fdkDumpPanel,
 				ftitle, 
-				KDBGER_STRING_NLINE,
-				KDBGER_MAX_PCINAME,
-				KDBGER_DUMP_FTITLE_LINE,
-				KDBGER_DUMP_FTITLE_COLUMN,
+				FDK_STRING_NLINE,
+				FDK_MAX_PCINAME,
+				FDK_DUMP_FTITLE_LINE,
+				FDK_DUMP_FTITLE_COLUMN,
 				WHITE_BLUE,
 				"%s: %s",
-				KDBGER_FTITLE_PCI,
-				(pKdbgerUiProperty->pKdbgerPciIds + pKdbgerUiProperty->kdbgerDumpPanel.byteBase)->venTxt );
+				FDK_FTITLE_PCI,
+				(pFdkUiProperty->pFdkPciIds + pFdkUiProperty->fdkDumpPanel.byteBase)->venTxt );
 
 			printWindowMove(
-				pKdbgerUiProperty->kdbgerDumpPanel,
+				pFdkUiProperty->fdkDumpPanel,
 				stitle, 
-				KDBGER_STRING_NLINE,
-				KDBGER_MAX_PCINAME,
-				KDBGER_DUMP_STITLE_LINE,
-				KDBGER_DUMP_FTITLE_COLUMN,
+				FDK_STRING_NLINE,
+				FDK_MAX_PCINAME,
+				FDK_DUMP_STITLE_LINE,
+				FDK_DUMP_FTITLE_COLUMN,
 				WHITE_BLUE,
 				"%s: %s",
-				KDBGER_STITLE_PCI,
-				(pKdbgerUiProperty->pKdbgerPciIds + pKdbgerUiProperty->kdbgerDumpPanel.byteBase)->devTxt );
+				FDK_STITLE_PCI,
+				(pFdkUiProperty->pFdkPciIds + pFdkUiProperty->fdkDumpPanel.byteBase)->devTxt );
 			break;
 
 		case KHF_PCIL:
@@ -326,163 +318,163 @@ void printDumpUpdatePanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
 
 			// Base address
 			printWindowAt(
-				pKdbgerUiProperty->kdbgerDumpPanel,
+				pFdkUiProperty->fdkDumpPanel,
 				baseaddr, 
-				KDBGER_STRING_NLINE,
+				FDK_STRING_NLINE,
 				20,
-				KDBGER_DUMP_BASEADDR_LINE,
-				strlen( pKdbgerUiProperty->kdbgerDumpPanel.infoStr ),
+				FDK_DUMP_BASEADDR_LINE,
+				strlen( pFdkUiProperty->fdkDumpPanel.infoStr ),
 				WHITE_BLUE,
-				KDBGER_INFO_IDE_BASE_FMT,
-				(u32)(pKdbgerUiProperty->kdbgerDumpPanel.byteBase >> 32),
-				(u32)(pKdbgerUiProperty->kdbgerDumpPanel.byteBase & 0xFFFFFFFFULL) );
+				FDK_INFO_IDE_BASE_FMT,
+				(u32)(pFdkUiProperty->fdkDumpPanel.byteBase >> 32),
+				(u32)(pFdkUiProperty->fdkDumpPanel.byteBase & 0xFFFFFFFFULL) );
 			break;
 
 		case KHF_CMOS:
 
 			// Base address
 			printWindowAt(
-				pKdbgerUiProperty->kdbgerDumpPanel,
+				pFdkUiProperty->fdkDumpPanel,
 				baseaddr, 
-				KDBGER_STRING_NLINE,
+				FDK_STRING_NLINE,
 				20,
-				KDBGER_DUMP_BASEADDR_LINE,
-				strlen( pKdbgerUiProperty->kdbgerDumpPanel.infoStr ),
+				FDK_DUMP_BASEADDR_LINE,
+				strlen( pFdkUiProperty->fdkDumpPanel.infoStr ),
 				WHITE_BLUE,
-				KDBGER_INFO_CMOS_BASE_FMT,
-				(u8)(pKdbgerUiProperty->kdbgerDumpPanel.byteBase & 0xFFULL) );
+				FDK_INFO_CMOS_BASE_FMT,
+				(u8)(pFdkUiProperty->fdkDumpPanel.byteBase & 0xFFULL) );
 			break;
 	}
 
 
 	// Highlight & Editing
-	y = (pKdbgerUiProperty->kdbgerDumpPanel.byteOffset / KDBGER_DUMP_BYTE_PER_LINE) + KDBGER_DUMP_VALUE_LINE;
-	x = ((pKdbgerUiProperty->kdbgerDumpPanel.byteOffset % KDBGER_DUMP_BYTE_PER_LINE) * 3) + KDBGER_DUMP_VALUE_COLUMN;
-	if( pKdbgerUiProperty->kdbgerDumpPanel.toggleEditing ) {
+	y = (pFdkUiProperty->fdkDumpPanel.byteOffset / FDK_DUMP_BYTE_PER_LINE) + FDK_DUMP_VALUE_LINE;
+	x = ((pFdkUiProperty->fdkDumpPanel.byteOffset % FDK_DUMP_BYTE_PER_LINE) * 3) + FDK_DUMP_VALUE_COLUMN;
+	if( pFdkUiProperty->fdkDumpPanel.toggleEditing ) {
 
 		color = (editorColorCount++ % 2) ? YELLOW_RED : YELLOW_BLACK;
 
 		printWindowMove(
-			pKdbgerUiProperty->kdbgerDumpPanel,
+			pFdkUiProperty->fdkDumpPanel,
 			highlight,
-			KDBGER_STRING_NLINE,
-			KDBGER_DUMP_HL_DIGITS,
+			FDK_STRING_NLINE,
+			FDK_DUMP_HL_DIGITS,
 			y,
 			x,
 			color,
 			"%2.2X",
-			pKdbgerUiProperty->kdbgerDumpPanel.editingBuf );
+			pFdkUiProperty->fdkDumpPanel.editingBuf );
 		}
 	else {
 
 		printWindowMove(
-			pKdbgerUiProperty->kdbgerDumpPanel,
+			pFdkUiProperty->fdkDumpPanel,
 			highlight,
-			KDBGER_STRING_NLINE,
-			KDBGER_DUMP_HL_DIGITS,
+			FDK_STRING_NLINE,
+			FDK_DUMP_HL_DIGITS,
 			y,
 			x,
 			YELLOW_RED,
 			"%2.2X",
-			*(pDataPtr + pKdbgerUiProperty->kdbgerDumpPanel.byteOffset) );
+			*(pDataPtr + pFdkUiProperty->fdkDumpPanel.byteOffset) );
 
-		pKdbgerUiProperty->kdbgerDumpPanel.editingBuf = *(pDataPtr + pKdbgerUiProperty->kdbgerDumpPanel.byteOffset);
+		pFdkUiProperty->fdkDumpPanel.editingBuf = *(pDataPtr + pFdkUiProperty->fdkDumpPanel.byteOffset);
 	}
 
 
 	// Bits
-	if( pKdbgerUiProperty->kdbgerDumpPanel.toggleBits ) {
+	if( pFdkUiProperty->fdkDumpPanel.toggleBits ) {
 
 		printWindowMove(
-			pKdbgerUiProperty->kdbgerDumpPanel,
+			pFdkUiProperty->fdkDumpPanel,
 			bits,
-			KDBGER_STRING_NLINE,
-			KDBGER_DUMP_BITS_DIGITS,
+			FDK_STRING_NLINE,
+			FDK_DUMP_BITS_DIGITS,
 			y + 1,
 			x,
 			WHITE_RED,
 			"%d%d%d%d_%d%d%d%d",
-			OLUX_GET_BIT( *(pDataPtr + pKdbgerUiProperty->kdbgerDumpPanel.byteOffset), 7 ),			
-			OLUX_GET_BIT( *(pDataPtr + pKdbgerUiProperty->kdbgerDumpPanel.byteOffset), 6 ),
-			OLUX_GET_BIT( *(pDataPtr + pKdbgerUiProperty->kdbgerDumpPanel.byteOffset), 5 ),
-			OLUX_GET_BIT( *(pDataPtr + pKdbgerUiProperty->kdbgerDumpPanel.byteOffset), 4 ),
-			OLUX_GET_BIT( *(pDataPtr + pKdbgerUiProperty->kdbgerDumpPanel.byteOffset), 3 ),
-			OLUX_GET_BIT( *(pDataPtr + pKdbgerUiProperty->kdbgerDumpPanel.byteOffset), 2 ),
-			OLUX_GET_BIT( *(pDataPtr + pKdbgerUiProperty->kdbgerDumpPanel.byteOffset), 1 ),
-			OLUX_GET_BIT( *(pDataPtr + pKdbgerUiProperty->kdbgerDumpPanel.byteOffset), 0 ) );
+			FDK_GET_BIT( *(pDataPtr + pFdkUiProperty->fdkDumpPanel.byteOffset), 7 ),			
+			FDK_GET_BIT( *(pDataPtr + pFdkUiProperty->fdkDumpPanel.byteOffset), 6 ),
+			FDK_GET_BIT( *(pDataPtr + pFdkUiProperty->fdkDumpPanel.byteOffset), 5 ),
+			FDK_GET_BIT( *(pDataPtr + pFdkUiProperty->fdkDumpPanel.byteOffset), 4 ),
+			FDK_GET_BIT( *(pDataPtr + pFdkUiProperty->fdkDumpPanel.byteOffset), 3 ),
+			FDK_GET_BIT( *(pDataPtr + pFdkUiProperty->fdkDumpPanel.byteOffset), 2 ),
+			FDK_GET_BIT( *(pDataPtr + pFdkUiProperty->fdkDumpPanel.byteOffset), 1 ),
+			FDK_GET_BIT( *(pDataPtr + pFdkUiProperty->fdkDumpPanel.byteOffset), 0 ) );
 	}
 	else
-		destroyWindow( pKdbgerUiProperty->kdbgerDumpPanel, bits );
+		destroyWindow( pFdkUiProperty->fdkDumpPanel, bits );
 
 
 	// Print ASCII highlight
-	if( pKdbgerUiProperty->kdbgerHwFunc != KHF_PCI ) {
-    	y = (pKdbgerUiProperty->kdbgerDumpPanel.byteOffset / KDBGER_DUMP_BYTE_PER_LINE) + KDBGER_DUMP_ASCII_LINE;
-    	x = (pKdbgerUiProperty->kdbgerDumpPanel.byteOffset % KDBGER_DUMP_BYTE_PER_LINE) + KDBGER_DUMP_ASCII_COLUMN;
+	if( pFdkUiProperty->fdkHwFunc != KHF_PCI ) {
+    	y = (pFdkUiProperty->fdkDumpPanel.byteOffset / FDK_DUMP_BYTE_PER_LINE) + FDK_DUMP_ASCII_LINE;
+    	x = (pFdkUiProperty->fdkDumpPanel.byteOffset % FDK_DUMP_BYTE_PER_LINE) + FDK_DUMP_ASCII_COLUMN;
 		printWindowMove(
-			pKdbgerUiProperty->kdbgerDumpPanel,
+			pFdkUiProperty->fdkDumpPanel,
 			hlascii,
-			KDBGER_STRING_NLINE,
-			KDBGER_DUMP_HLA_DIGITS,
+			FDK_STRING_NLINE,
+			FDK_DUMP_HLA_DIGITS,
 			y,
 			x,
 			YELLOW_RED,
 			"%c",
-			KDBGER_DUMP_ASCII_FILTER( *(pDataPtr + pKdbgerUiProperty->kdbgerDumpPanel.byteOffset) ) );
+			FDK_DUMP_ASCII_FILTER( *(pDataPtr + pFdkUiProperty->fdkDumpPanel.byteOffset) ) );
 	}
 }
 
 
-void clearDumpBasePanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
+void clearDumpBasePanel( fdkUiProperty_t *pFdkUiProperty ) {
 
-	destroyWindow( pKdbgerUiProperty->kdbgerDumpPanel, top );
-	destroyWindow( pKdbgerUiProperty->kdbgerDumpPanel, rtop );
-	destroyWindow( pKdbgerUiProperty->kdbgerDumpPanel, left );
-	destroyWindow( pKdbgerUiProperty->kdbgerDumpPanel, info );
+	destroyWindow( pFdkUiProperty->fdkDumpPanel, top );
+	destroyWindow( pFdkUiProperty->fdkDumpPanel, rtop );
+	destroyWindow( pFdkUiProperty->fdkDumpPanel, left );
+	destroyWindow( pFdkUiProperty->fdkDumpPanel, info );
 }
 
 
-void clearDumpUpdatePanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
+void clearDumpUpdatePanel( fdkUiProperty_t *pFdkUiProperty ) {
 
-	destroyWindow( pKdbgerUiProperty->kdbgerDumpPanel, value );
-	destroyWindow( pKdbgerUiProperty->kdbgerDumpPanel, ascii );
-	destroyWindow( pKdbgerUiProperty->kdbgerDumpPanel, offset );
-	destroyWindow( pKdbgerUiProperty->kdbgerDumpPanel, baseaddr );
-	destroyWindow( pKdbgerUiProperty->kdbgerDumpPanel, highlight );
-	destroyWindow( pKdbgerUiProperty->kdbgerDumpPanel, hlascii );
-	destroyWindow( pKdbgerUiProperty->kdbgerDumpPanel, bits );
-	destroyWindow( pKdbgerUiProperty->kdbgerDumpPanel, ftitle );
-	destroyWindow( pKdbgerUiProperty->kdbgerDumpPanel, stitle );
+	destroyWindow( pFdkUiProperty->fdkDumpPanel, value );
+	destroyWindow( pFdkUiProperty->fdkDumpPanel, ascii );
+	destroyWindow( pFdkUiProperty->fdkDumpPanel, offset );
+	destroyWindow( pFdkUiProperty->fdkDumpPanel, baseaddr );
+	destroyWindow( pFdkUiProperty->fdkDumpPanel, highlight );
+	destroyWindow( pFdkUiProperty->fdkDumpPanel, hlascii );
+	destroyWindow( pFdkUiProperty->fdkDumpPanel, bits );
+	destroyWindow( pFdkUiProperty->fdkDumpPanel, ftitle );
+	destroyWindow( pFdkUiProperty->fdkDumpPanel, stitle );
 }
 
 
-void handleKeyPressForDumpPanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
+void handleKeyPressForDumpPanel( fdkUiProperty_t *pFdkUiProperty ) {
 
-	if( pKdbgerUiProperty->kdbgerDumpPanel.toggleEditing ) {
+	if( pFdkUiProperty->fdkDumpPanel.toggleEditing ) {
 
 		// Trigger write action
-		if( pKdbgerUiProperty->inputBuf == KBPRS_ENTER ) {
+		if( pFdkUiProperty->inputBuf == KBPRS_ENTER ) {
 
-			switch( pKdbgerUiProperty->kdbgerHwFunc ) {
+			switch( pFdkUiProperty->fdkHwFunc ) {
 
 				case KHF_MEM:
-					writeMemoryByEditing( pKdbgerUiProperty );
+					writeMemoryByEditing( pFdkUiProperty );
 					break;
 
 				case KHF_IO:
-					writeIoByEditing( pKdbgerUiProperty );
+					writeIoByEditing( pFdkUiProperty );
 					break;
 
 				case KHF_PCI:
-					writePciByEditing( pKdbgerUiProperty );
+					writePciByEditing( pFdkUiProperty );
 					break;
 
 				case KHF_IDE:
-					writeIdeByEditing( pKdbgerUiProperty );
+					writeIdeByEditing( pFdkUiProperty );
 					break;
 
 				case KHF_CMOS:
-					writeCmosByEditing( pKdbgerUiProperty );
+					writeCmosByEditing( pFdkUiProperty );
 					break;
 
 				default:
@@ -490,131 +482,131 @@ void handleKeyPressForDumpPanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
 			}
 
 			// Exit
-			pKdbgerUiProperty->kdbgerDumpPanel.toggleEditing = 0;
+			pFdkUiProperty->fdkDumpPanel.toggleEditing = 0;
 			return;
 		}
 
 		// Editing
-		if( (pKdbgerUiProperty->inputBuf >= '0' 
-			&& pKdbgerUiProperty->inputBuf <= '9')
-			|| (pKdbgerUiProperty->inputBuf >= 'a'
-			&& pKdbgerUiProperty->inputBuf <= 'f')
-			|| (pKdbgerUiProperty->inputBuf >= 'A'
-			&& pKdbgerUiProperty->inputBuf <= 'F') ) {
+		if( (pFdkUiProperty->inputBuf >= '0' 
+			&& pFdkUiProperty->inputBuf <= '9')
+			|| (pFdkUiProperty->inputBuf >= 'a'
+			&& pFdkUiProperty->inputBuf <= 'f')
+			|| (pFdkUiProperty->inputBuf >= 'A'
+			&& pFdkUiProperty->inputBuf <= 'F') ) {
 
 			// Left shift 4 bits
-			pKdbgerUiProperty->kdbgerDumpPanel.editingBuf <<= 4;
+			pFdkUiProperty->fdkDumpPanel.editingBuf <<= 4;
 
-			if( pKdbgerUiProperty->inputBuf <= '9' ) {
+			if( pFdkUiProperty->inputBuf <= '9' ) {
 
-				pKdbgerUiProperty->kdbgerDumpPanel.editingBuf |=
-					(u8)((pKdbgerUiProperty->inputBuf - 0x30) & 0x0F);
+				pFdkUiProperty->fdkDumpPanel.editingBuf |=
+					(u8)((pFdkUiProperty->inputBuf - 0x30) & 0x0F);
 			}
-			else if( pKdbgerUiProperty->inputBuf > 'F' ) {
+			else if( pFdkUiProperty->inputBuf > 'F' ) {
 
-				pKdbgerUiProperty->kdbgerDumpPanel.editingBuf |=
-					(u8)((pKdbgerUiProperty->inputBuf - 0x60 + 9) & 0x0F);
+				pFdkUiProperty->fdkDumpPanel.editingBuf |=
+					(u8)((pFdkUiProperty->inputBuf - 0x60 + 9) & 0x0F);
 			}
 			else {
 
-				pKdbgerUiProperty->kdbgerDumpPanel.editingBuf |=
-					(u8)((pKdbgerUiProperty->inputBuf - 0x40 + 9) & 0x0F);
+				pFdkUiProperty->fdkDumpPanel.editingBuf |=
+					(u8)((pFdkUiProperty->inputBuf - 0x40 + 9) & 0x0F);
 			}
 		}
 
 		return;
 	}
 
-	switch( pKdbgerUiProperty->inputBuf ) {
+	switch( pFdkUiProperty->inputBuf ) {
 
 		case KBPRS_UP:
 
-			if( (pKdbgerUiProperty->kdbgerDumpPanel.byteOffset - KDBGER_DUMP_BYTE_PER_LINE) >= 0 )
-				pKdbgerUiProperty->kdbgerDumpPanel.byteOffset -= KDBGER_DUMP_BYTE_PER_LINE;
+			if( (pFdkUiProperty->fdkDumpPanel.byteOffset - FDK_DUMP_BYTE_PER_LINE) >= 0 )
+				pFdkUiProperty->fdkDumpPanel.byteOffset -= FDK_DUMP_BYTE_PER_LINE;
 			else
-				pKdbgerUiProperty->kdbgerDumpPanel.byteOffset = KDBGER_BYTE_PER_SCREEN - (KDBGER_DUMP_BYTE_PER_LINE - pKdbgerUiProperty->kdbgerDumpPanel.byteOffset);
+				pFdkUiProperty->fdkDumpPanel.byteOffset = FDK_BYTE_PER_SCREEN - (FDK_DUMP_BYTE_PER_LINE - pFdkUiProperty->fdkDumpPanel.byteOffset);
             break;
 
 		case KBPRS_DOWN:
 
-			if( (pKdbgerUiProperty->kdbgerDumpPanel.byteOffset + KDBGER_DUMP_BYTE_PER_LINE) < KDBGER_BYTE_PER_SCREEN )
-				pKdbgerUiProperty->kdbgerDumpPanel.byteOffset += KDBGER_DUMP_BYTE_PER_LINE;
+			if( (pFdkUiProperty->fdkDumpPanel.byteOffset + FDK_DUMP_BYTE_PER_LINE) < FDK_BYTE_PER_SCREEN )
+				pFdkUiProperty->fdkDumpPanel.byteOffset += FDK_DUMP_BYTE_PER_LINE;
 			else
-				pKdbgerUiProperty->kdbgerDumpPanel.byteOffset %= KDBGER_DUMP_BYTE_PER_LINE;
+				pFdkUiProperty->fdkDumpPanel.byteOffset %= FDK_DUMP_BYTE_PER_LINE;
             break;
 
 		case KBPRS_LEFT:
 
-			if( (pKdbgerUiProperty->kdbgerDumpPanel.byteOffset - 1) >= 0 && (pKdbgerUiProperty->kdbgerDumpPanel.byteOffset % KDBGER_DUMP_BYTE_PER_LINE) > 0 )
-				pKdbgerUiProperty->kdbgerDumpPanel.byteOffset--;
+			if( (pFdkUiProperty->fdkDumpPanel.byteOffset - 1) >= 0 && (pFdkUiProperty->fdkDumpPanel.byteOffset % FDK_DUMP_BYTE_PER_LINE) > 0 )
+				pFdkUiProperty->fdkDumpPanel.byteOffset--;
 			else
-				pKdbgerUiProperty->kdbgerDumpPanel.byteOffset += (KDBGER_DUMP_BYTE_PER_LINE - 1);
+				pFdkUiProperty->fdkDumpPanel.byteOffset += (FDK_DUMP_BYTE_PER_LINE - 1);
             break;
 
 		case KBPRS_RIGHT:
 
-			if( (pKdbgerUiProperty->kdbgerDumpPanel.byteOffset + 1) < KDBGER_BYTE_PER_SCREEN 
-				&& ((pKdbgerUiProperty->kdbgerDumpPanel.byteOffset + 1) % KDBGER_DUMP_BYTE_PER_LINE) )
-				pKdbgerUiProperty->kdbgerDumpPanel.byteOffset++;
+			if( (pFdkUiProperty->fdkDumpPanel.byteOffset + 1) < FDK_BYTE_PER_SCREEN 
+				&& ((pFdkUiProperty->fdkDumpPanel.byteOffset + 1) % FDK_DUMP_BYTE_PER_LINE) )
+				pFdkUiProperty->fdkDumpPanel.byteOffset++;
 			else
-				pKdbgerUiProperty->kdbgerDumpPanel.byteOffset -= (KDBGER_DUMP_BYTE_PER_LINE - 1);
+				pFdkUiProperty->fdkDumpPanel.byteOffset -= (FDK_DUMP_BYTE_PER_LINE - 1);
             break;
 
 		case KBPRS_PGUP:
 
-			switch( pKdbgerUiProperty->kdbgerHwFunc ) {
+			switch( pFdkUiProperty->fdkHwFunc ) {
 
 				case KHF_PCI:
-					if( !pKdbgerUiProperty->kdbgerDumpPanel.byteBase )
-						pKdbgerUiProperty->kdbgerDumpPanel.byteBase = pKdbgerUiProperty->numOfPciDevice - 1;
+					if( !pFdkUiProperty->fdkDumpPanel.byteBase )
+						pFdkUiProperty->fdkDumpPanel.byteBase = pFdkUiProperty->numOfPciDevice - 1;
 					else
-						pKdbgerUiProperty->kdbgerDumpPanel.byteBase--;
+						pFdkUiProperty->fdkDumpPanel.byteBase--;
 					break;
 
 				case KHF_MEM:
-					pKdbgerUiProperty->kdbgerDumpPanel.byteBase -= KDBGER_BYTE_PER_SCREEN;
-					if( pKdbgerUiProperty->kdbgerDumpPanel.byteBase >= KDBGER_MAXADDR_MEM )
-						pKdbgerUiProperty->kdbgerDumpPanel.byteBase =
-							(pKdbgerUiProperty->kdbgerDumpPanel.byteBase & 0xFFULL)
-							| (KDBGER_MAXADDR_MEM & ~0xFFULL);
+					pFdkUiProperty->fdkDumpPanel.byteBase -= FDK_BYTE_PER_SCREEN;
+					if( pFdkUiProperty->fdkDumpPanel.byteBase >= FDK_MAXADDR_MEM )
+						pFdkUiProperty->fdkDumpPanel.byteBase =
+							(pFdkUiProperty->fdkDumpPanel.byteBase & 0xFFULL)
+							| (FDK_MAXADDR_MEM & ~0xFFULL);
 					break;
 
 				case KHF_IO:
-					pKdbgerUiProperty->kdbgerDumpPanel.byteBase -= KDBGER_BYTE_PER_SCREEN;
-					if( pKdbgerUiProperty->kdbgerDumpPanel.byteBase >= KDBGER_MAXADDR_IO )
-						pKdbgerUiProperty->kdbgerDumpPanel.byteBase =
-							(pKdbgerUiProperty->kdbgerDumpPanel.byteBase & 0xFFULL)
-							| (KDBGER_MAXADDR_IO & ~0xFFULL);
+					pFdkUiProperty->fdkDumpPanel.byteBase -= FDK_BYTE_PER_SCREEN;
+					if( pFdkUiProperty->fdkDumpPanel.byteBase >= FDK_MAXADDR_IO )
+						pFdkUiProperty->fdkDumpPanel.byteBase =
+							(pFdkUiProperty->fdkDumpPanel.byteBase & 0xFFULL)
+							| (FDK_MAXADDR_IO & ~0xFFULL);
 					break;
 
 				default:
 					break;
 			}
-				pKdbgerUiProperty->kdbgerDumpPanel.byteBase -= KDBGER_BYTE_PER_SCREEN;
+				pFdkUiProperty->fdkDumpPanel.byteBase -= FDK_BYTE_PER_SCREEN;
             break;
 
 		case KBPRS_PGDN:
 
-			switch( pKdbgerUiProperty->kdbgerHwFunc ) {
+			switch( pFdkUiProperty->fdkHwFunc ) {
 
 				case KHF_PCI:
-					if( (pKdbgerUiProperty->kdbgerDumpPanel.byteBase + 1) 
-						>= pKdbgerUiProperty->numOfPciDevice )
-						pKdbgerUiProperty->kdbgerDumpPanel.byteBase = 0;
+					if( (pFdkUiProperty->fdkDumpPanel.byteBase + 1) 
+						>= pFdkUiProperty->numOfPciDevice )
+						pFdkUiProperty->fdkDumpPanel.byteBase = 0;
 					else
-						pKdbgerUiProperty->kdbgerDumpPanel.byteBase++;
+						pFdkUiProperty->fdkDumpPanel.byteBase++;
 					break;
 
 				case KHF_MEM:
-					pKdbgerUiProperty->kdbgerDumpPanel.byteBase += KDBGER_BYTE_PER_SCREEN;
-					if( pKdbgerUiProperty->kdbgerDumpPanel.byteBase >= KDBGER_MAXADDR_MEM )
-						pKdbgerUiProperty->kdbgerDumpPanel.byteBase &= 0xFFULL;
+					pFdkUiProperty->fdkDumpPanel.byteBase += FDK_BYTE_PER_SCREEN;
+					if( pFdkUiProperty->fdkDumpPanel.byteBase >= FDK_MAXADDR_MEM )
+						pFdkUiProperty->fdkDumpPanel.byteBase &= 0xFFULL;
 					break;
 
 				case KHF_IO:
-					pKdbgerUiProperty->kdbgerDumpPanel.byteBase += KDBGER_BYTE_PER_SCREEN;
-					if( pKdbgerUiProperty->kdbgerDumpPanel.byteBase >= KDBGER_MAXADDR_IO )
-						pKdbgerUiProperty->kdbgerDumpPanel.byteBase &= 0xFFULL;
+					pFdkUiProperty->fdkDumpPanel.byteBase += FDK_BYTE_PER_SCREEN;
+					if( pFdkUiProperty->fdkDumpPanel.byteBase >= FDK_MAXADDR_IO )
+						pFdkUiProperty->fdkDumpPanel.byteBase &= 0xFFULL;
 					break;
 
 				default:
@@ -624,12 +616,12 @@ void handleKeyPressForDumpPanel( kdbgerUiProperty_t *pKdbgerUiProperty ) {
 
 		case KBPRS_ENTER:
 
-			pKdbgerUiProperty->kdbgerDumpPanel.toggleEditing = 1;
+			pFdkUiProperty->fdkDumpPanel.toggleEditing = 1;
 			break;
 
 		case KBPRS_SPACE:
 
-			pKdbgerUiProperty->kdbgerDumpPanel.toggleBits = !pKdbgerUiProperty->kdbgerDumpPanel.toggleBits;
+			pFdkUiProperty->fdkDumpPanel.toggleBits = !pFdkUiProperty->fdkDumpPanel.toggleBits;
 			break;
 
 		default:

@@ -10,24 +10,11 @@
 #include <pthread.h>
 
 #include <mtypes.h>
-#include <packet.h>
 #include <fdk.h>
 #include <libcomm.h>
 #include <netsock.h>
-
-
-typedef struct _afdkdSvrTask {
-
-    struct _afdkdSvrTask		*next;
-    s32                         fd;
-    char          				pktData[ FDK_PKTSIZE ];
-
-} afdkdSvrTask_t;
-
-
-// Global Variables
-static afdkdSvrTask_t *afdkdSvrTaskHead = NULL;
-pthread_mutex_t taskMutexLock = PTHREAD_MUTEX_INITIALIZER;
+#include <packet.h>
+#include <fdkd.h>
 
 
 static void help( void ) {
@@ -49,7 +36,7 @@ s32 main( s32 argc, s8 **argv ) {
     
     s32 sfd, cfd;
     s8 packet[ FDK_PKTSIZE ];
-    afdkdSvrTask_t *pAfdkdSvrTask;
+	u32 rwByte;
     
 
     // Handle arguments
@@ -115,37 +102,15 @@ s32 main( s32 argc, s8 **argv ) {
         if( acceptSocket( sfd, &cfd ) != TRUE )
             continue;
         
-        // Clear buffer
-        memset( packet, 0, FDK_PKTSIZE );
-        
         // Read incoming data
-        if( receiveSocket( cfd, packet, FDK_PKTSIZE ) == FALSE ) {
-            
-            // Allocate a task
-            pAfdkdSvrTask = (afdkdSvrTask_t *)malloc( sizeof( afdkdSvrTask_t ) );
-            if( !pAfdkdSvrTask ) {
-            
-                fprintf( stderr, "Out of Memory\n" );
-                goto EndOfRecv;
-            }
-            
-            // Clear buffer
-            pAfdkdSvrTask->next = NULL;
-            memcpy( pAfdkdSvrTask->pktData, packet, FDK_PKTSIZE );
+        receiveSocket( cfd, packet, FDK_PKTSIZE, &rwByte );
+		if( rwByte <= 0 )
+			continue;
 
-			printf( "\n======= PLAY RECV START =================================\n" );
-			DumpData( packet, FDK_PKTSIZE, 0x0 );
-			printf( "\n======= PLAY RECV END    =================================\n" );
-            
-#if 0
-            // Add to the Linklist
-            pthread_mutex_lock( &taskMutexLock );
-            appendLinklist( (commonLinklist_t **)&afdkdSvrTaskHead, (commonLinklist_t *)pAfdkdSvrTask );
-            pthread_mutex_unlock( &taskMutexLock );
-#endif
-        }
+		// Handle this packet
+		if( !handleRequestPacket( cfd, (fdkCommPkt_t *)packet, rwByte ) )
+			transferSocket( cfd, packet, ((fdkCommPkt_t *)packet)->fdkCommHdr.pktLen, &rwByte );
         
-EndOfRecv:
         // Close this connection
         deinitializeSocket( cfd );
     }

@@ -4,7 +4,7 @@
 
 #define FDK_DEF_IPADDR			"127.0.0.1"
 #define FDK_DEF_PORT			7123	
-#define FDK_PKTSIZE				128
+#define FDK_PKTSIZE				5120
 
 #define FDK_COPYRIGHT_TEXT		"Copyright (c) 2012 All rights reserved."
 #define FDK_REVISION			"0.0.1"

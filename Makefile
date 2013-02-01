@@ -20,7 +20,7 @@ MODULES				=	fdkd cfdk
 
 OBJS_COMMON			=	packet.o utils.o netsock.o libcomm.o
 
-OBJS_FDKD			=	fdkd.o $(OBJS_COMMON)
+OBJS_FDKD			=	fdkd.o helper.o $(OBJS_COMMON)
 CFLAGS_FDKD			=	$(CFLAGS)
 LFDLAGS_FDKD		=	$(LDFLAGS) -lpthread
 

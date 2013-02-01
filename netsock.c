@@ -133,18 +133,20 @@ s32 acceptSocket( s32 fd, s32 *apsd ) {
 }
 
 
-s32 transferSocket( s32 fd, const void *pktBuf, const u32 length ) {
+s32 transferSocket( s32 fd, const void *pktBuf, const u32 length, u32 *wByte ) {
 
-    if( send( fd, pktBuf, length, 0 ) != length )
+	*wByte = send( fd, pktBuf, length, 0 );
+    if( *wByte != length )
         return FALSE;
     
     return TRUE;
 }
 
 
-s32 receiveSocket( s32 fd, void *pktBuf, const u32 length ) {
-    
-    if( recv( fd, pktBuf, length, 0 ) != length )
+s32 receiveSocket( s32 fd, void *pktBuf, const u32 length, u32 *rByte ) {
+
+	*rByte = recv( fd, pktBuf, length, 0 );
+    if( *rByte != length )
         return FALSE;
     
     return TRUE;

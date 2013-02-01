@@ -10,9 +10,8 @@
 #include <termios.h>
 
 #include <mtypes.h>
-#include <packet.h>
-
 #include <fdk.h>
+#include <packet.h>
 
 
 s32 verifyResponsePacket( fdkCommPkt_t *pFdkCommPkt, fdkOpCode_t op ) {
@@ -226,11 +225,7 @@ s32 executeFunction( s32 fd, fdkOpCode_t op, u64 addr, u32 size, u8 *cntBuf, u8 
 	pFdkCommPkt->fdkCommHdr.opCode = op;
 
 	// Transmit the request
-#if 1
 	rwByte = write( fd, pktBuf, pFdkCommPkt->fdkCommHdr.pktLen );
-#else
-	rwByte = send( fd, pktBuf, pFdkCommPkt->fdkCommHdr.pktLen, 0 );
-#endif
 	if( rwByte != pFdkCommPkt->fdkCommHdr.pktLen ) {
 
 		fprintf( stderr, "Error on transmitting request wsize = %d\n", rwByte );
@@ -239,11 +234,7 @@ s32 executeFunction( s32 fd, fdkOpCode_t op, u64 addr, u32 size, u8 *cntBuf, u8 
 
 	// Receive the response
 	memset( pktBuf, 0, lenPktBuf );
-#if 1
 	rwByte = read( fd, pktBuf, lenPktBuf );
-#else
-	rwByte = recv( fd, pktBuf, lenPktBuf, 0 );
-#endif
 	if( !rwByte ) {
 
 		fprintf( stderr, "No response\n" );

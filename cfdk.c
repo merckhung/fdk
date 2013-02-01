@@ -9,13 +9,12 @@
 #include <time.h>
 #include <termios.h>
 
-#include <mtypes.h>
-#include <packet.h>
-
 #include <ncurses.h>
 #include <panel.h>
 
+#include <mtypes.h>
 #include <fdk.h>
+#include <packet.h>
 #include <cfdk.h>
 #include <libcomm.h>
 #include <netsock.h>

@@ -33,6 +33,20 @@ s32 connectToFdkServer( fdkUiProperty_t *pFdkUiProperty ) {
 }
 
 
+s32 disconnectFromFdkServer( fdkUiProperty_t *pFdkUiProperty ) {
+
+    // Connect to FDK server
+    return executeFunction(
+            pFdkUiProperty->fd,
+            FDK_REQ_DISCONNECT,
+            0,
+            0,
+            NULL,
+            pFdkUiProperty->pktBuf,
+            FDK_MAXSZ_PKT );
+}
+
+
 s32 readPciList( fdkUiProperty_t *pFdkUiProperty ) {
 
 	fdkRspPciListPkt_t *pFdkRspPciListPkt;

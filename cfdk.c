@@ -25,7 +25,7 @@ static void help( void ) {
     fprintf( stderr, "\n" FDK_COPYRIGHT_TEXT "\n\n" );
     fprintf( stderr, CFDK_PROGRAM_NAME ", Version " FDK_REVISION "\n" );
     fprintf( stderr, "Author: " FDK_AUTHOR_NAME "\n" );
-    fprintf( stderr, "help: fdk [-d /dev/ttyS0] [-h]\n\n" );
+    fprintf( stderr, "help: fdk [-i 127.0.0.1 | -d /dev/ttyS0] [-h]\n\n" );
 	fprintf( stderr, "\t-p\tPCI IDs filepath, default is " FDK_DEF_PCIIDS "\n" );
 	fprintf( stderr, "\t-i\tIPv4 address, default is " FDK_DEF_IPADDR "\n");
 	fprintf( stderr, "\t-d\tUART TTY device, default is " FDK_DEF_TTYDEV "\n");
@@ -529,6 +529,12 @@ ErrExit1:
 	free( fdkUiProperty.pFdkPciDev );
 
 ErrExit:
+
+	// Disconnect from the server
+	if( connectToFdkServer( &fdkUiProperty ) ) {
+
+		fprintf( stderr, "Cannot disconnect from FDK server\n" );
+	}
 
 	if( !useIp ) {
 

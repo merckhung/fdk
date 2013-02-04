@@ -53,6 +53,7 @@ int countLinklist( commonLinklist_t *head );
 commonLinklist_t **tailOfLinklist( commonLinklist_t **head );
 void appendLinklist( commonLinklist_t **head, commonLinklist_t *object );
 commonLinklist_t *retriveFirstLinklist( commonLinklist_t **head );
+commonLinklist_t *removeLinklist( commonLinklist_t **head, commonLinklist_t *tgt );
 void freeLinklist( commonLinklist_t *head );
 
 

@@ -17,6 +17,11 @@
 #include <fdkd.h>
 
 
+static volatile u8 terminate = 0;
+static threadList_t *headThreadList = NULL;
+static pthread_mutex_t threadLock = PTHREAD_MUTEX_INITIALIZER;
+
+
 static void help( void ) {
 
     fprintf( stderr, "\n" FDK_COPYRIGHT_TEXT "\n\n" );
@@ -28,16 +33,85 @@ static void help( void ) {
 }
 
 
+void *handleIncomingConnection( void *arg ) {
+
+	threadList_t *pThreadList = (threadList_t *)arg;
+
+	// Sanity check
+	if( !pThreadList )
+		pthread_exit( 0 );
+
+	// Main thread loop
+	while( 1 ) {
+
+		// Read incoming data
+		receiveSocket(
+			pThreadList->cfd,
+			pThreadList->packet,
+			FDK_PKTSIZE,
+			&pThreadList->rwByte );
+		if( pThreadList->rwByte <= 0 )
+			break;
+
+		// Handle this packet
+		if( !handleRequestPacket(
+				pThreadList->cfd,
+				(fdkCommPkt_t *)pThreadList->packet,
+				pThreadList->rwByte ) ) {
+
+			// Response
+			transferSocket(
+				pThreadList->cfd, 
+				pThreadList->packet,
+				((fdkCommPkt_t *)pThreadList->packet)->fdkCommHdr.pktLen,
+				&pThreadList->rwByte );
+		}
+		else
+			break;
+	}
+
+	// Close this connection
+	deinitializeSocket( pThreadList->cfd );
+
+	// Detach my context
+	pthread_mutex_lock( &threadLock );
+	removeLinklist( (commonLinklist_t **)&headThreadList, (commonLinklist_t *)pThreadList );
+	pthread_mutex_unlock( &threadLock );
+
+	// Free memory
+	free( pThreadList );
+
+	// Return
+	pthread_exit( 0 );
+}
+
+
+void handleSignal( int no ) {
+
+	// Terminate the main program
+	terminate = 1;
+}
+
+
 s32 main( s32 argc, s8 **argv ) {
     
     s8 c;
-    s32 daemon = 1, terminate = 0;
+    s32 daemon = 1, sfd, cfd, ret;
     pid_t pid, sid;
-    
-    s32 sfd, cfd;
-    s8 packet[ FDK_PKTSIZE ];
-	u32 rwByte;
-    
+	uid_t uid, euid;
+	threadList_t *pThreadList;
+
+
+	// Initialize
+	uid = getuid();
+	euid = geteuid();
+	if( uid != 0 || euid != 0 ) {
+
+		fprintf( stderr, "Must be run with ROOT privilege\n" );
+		help();
+		return -1;
+	}
+
 
     // Handle arguments
     while( (c = getopt( argc, argv, ":dh" )) != EOF ) {
@@ -53,8 +127,17 @@ s32 main( s32 argc, s8 **argv ) {
                 return 0;
         }
     }
-    
-    
+
+
+#if 0
+	// Signal register
+	signal( SIGKILL, handleSignal );
+	signal( SIGTERM, handleSignal );
+	signal( SIGHUP, handleSignal );
+	signal( SIGINT, handleSignal );
+#endif
+
+
     // Run as daemon
     if( daemon ) {
 
@@ -101,28 +184,46 @@ s32 main( s32 argc, s8 **argv ) {
         // Accept new connection
         if( acceptSocket( sfd, &cfd ) != TRUE )
             continue;
-        
-		while( 1 ) {
 
-        	// Read incoming data
-        	receiveSocket( cfd, packet, FDK_PKTSIZE, &rwByte );
-			if( rwByte <= 0 )
-				continue;
+		// Allocate a new thread context
+		pThreadList = malloc( sizeof( threadList_t ) );
+		if( !pThreadList ) {
 
-			// Handle this packet
-			if( !handleRequestPacket( cfd, (fdkCommPkt_t *)packet, rwByte ) )
-				transferSocket( cfd, packet, ((fdkCommPkt_t *)packet)->fdkCommHdr.pktLen, &rwByte );
-			else
-				break;
+			fprintf( stderr, "Out of memory\n" );
+			deinitializeSocket( cfd );
+			usleep( 1000 );
+			continue;
 		}
-        
-        // Close this connection
-        deinitializeSocket( cfd );
+
+		// Attach the thread context
+		pthread_mutex_lock( &threadLock );
+		appendLinklist( (commonLinklist_t **)&headThreadList, (commonLinklist_t *)pThreadList );
+		pthread_mutex_unlock( &threadLock );
+
+		// Fill in the data
+		pThreadList->cfd = cfd;
+
+		// Create a thread
+		ret = pthread_create( 
+			&pThreadList->pth,
+			NULL,
+			handleIncomingConnection,
+			(void *)pThreadList );
+		if( ret ) {
+
+			fprintf( stderr, "Failed to create a thread\n" );
+			break;
+		}
+
+		// Delay for a while
+		usleep( 100 );
     }
 
 
-	// Wait for the remaining tasks to finish
-	
+	// Cancel all running threads, but don't free, the OS will do
+	for( pThreadList = headThreadList ; pThreadList ; pThreadList = pThreadList->next )
+		pthread_cancel( pThreadList->pth );
+
 
     // Close the socket
     deinitializeSocket( sfd );

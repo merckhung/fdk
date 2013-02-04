@@ -14,78 +14,36 @@
 #include <packet.h>
 
 
+#define VERIFY_PAIR( REQ, RSP ) { \
+case RSP: \
+	if( op != REQ ) \
+		return 1; \
+	break; \
+}
+
+
 s32 verifyResponsePacket( fdkCommPkt_t *pFdkCommPkt, fdkOpCode_t op ) {
 
 	switch( pFdkCommPkt->fdkCommHdr.opCode ) {
 
-		case FDK_RSP_CONNECT:
-			if( op != FDK_REQ_CONNECT )
-				return 1;
-			break;
+	VERIFY_PAIR( FDK_REQ_CONNECT,	FDK_RSP_CONNECT )
+	VERIFY_PAIR( FDK_REQ_DISCONNECT,FDK_RSP_DISCONNECT )
+	VERIFY_PAIR( FDK_REQ_MEM_READ,	FDK_RSP_MEM_READ )
+	VERIFY_PAIR( FDK_REQ_MEM_WRITE,	FDK_RSP_MEM_WRITE )
+	VERIFY_PAIR( FDK_REQ_IO_READ,	FDK_RSP_IO_READ )
+	VERIFY_PAIR( FDK_REQ_IO_WRITE,	FDK_RSP_IO_WRITE )
+	VERIFY_PAIR( FDK_REQ_PCI_READ,	FDK_RSP_PCI_READ )
+	VERIFY_PAIR( FDK_REQ_PCI_WRITE,	FDK_RSP_PCI_WRITE )
+	VERIFY_PAIR( FDK_REQ_IDE_READ,	FDK_RSP_IDE_READ )
+	VERIFY_PAIR( FDK_REQ_IDE_WRITE,	FDK_RSP_IDE_WRITE )
+	VERIFY_PAIR( FDK_REQ_CMOS_READ,	FDK_RSP_CMOS_READ )
+	VERIFY_PAIR( FDK_REQ_CMOS_WRITE,FDK_RSP_CMOS_WRITE )
+	VERIFY_PAIR( FDK_REQ_PCI_LIST,	FDK_RSP_PCI_LIST )
+	VERIFY_PAIR( FDK_REQ_E820_LIST,	FDK_RSP_E820_LIST )
 
-		case FDK_RSP_MEM_READ:
-			if( op != FDK_REQ_MEM_READ )
-				return 1;
-			break;
-
-		case FDK_RSP_MEM_WRITE:
-            if( op != FDK_REQ_MEM_WRITE )
-                return 1;
-			break;
-
-		case FDK_RSP_IO_READ:
-            if( op != FDK_REQ_IO_READ )
-                return 1;
-			break;
-
-		case FDK_RSP_IO_WRITE:
-            if( op != FDK_REQ_IO_WRITE )
-                return 1;
-			break;
-
-		case FDK_RSP_PCI_READ:
-            if( op != FDK_REQ_PCI_READ )
-                return 1;
-			break;
-
-		case FDK_RSP_PCI_WRITE:
-            if( op != FDK_REQ_PCI_WRITE )
-                return 1;
-			break;
-
-		case FDK_RSP_IDE_READ:
-            if( op != FDK_REQ_IDE_READ )
-                return 1;
-			break;
-
-		case FDK_RSP_IDE_WRITE:
-            if( op != FDK_REQ_IDE_WRITE )
-                return 1;
-			break;
-
-		case FDK_RSP_CMOS_READ:
-            if( op != FDK_REQ_CMOS_READ )
-                return 1;
-			break;
-
-		case FDK_RSP_CMOS_WRITE:
-            if( op != FDK_REQ_CMOS_WRITE )
-                return 1;
-			break;
-
-		case FDK_RSP_PCI_LIST:
-			if( op != FDK_REQ_PCI_LIST )
-				return 1;
-			break;
-
-		case FDK_RSP_E820_LIST:
-			if( op != FDK_REQ_E820_LIST )
-				return 1;
-			break;
-
-		case FDK_RSP_NACK:
-		default:
-			return 1;
+	case FDK_RSP_NACK:
+	default:
+		return 1;
 	}
 
 	return 0;
@@ -104,6 +62,11 @@ s32 executeFunction( s32 fd, fdkOpCode_t op, u64 addr, u32 size, u8 *cntBuf, u8 
 	switch( op ) {
 
 		case FDK_REQ_CONNECT:
+
+			pFdkCommPkt->fdkCommHdr.pktLen = sizeof( fdkCommHdr_t );
+			break;
+
+		case FDK_REQ_DISCONNECT:
 
 			pFdkCommPkt->fdkCommHdr.pktLen = sizeof( fdkCommHdr_t );
 			break;
@@ -217,7 +180,7 @@ s32 executeFunction( s32 fd, fdkOpCode_t op, u64 addr, u32 size, u8 *cntBuf, u8 
 
 		default:
 
-			fprintf( stderr, "Unsupport operation, %d\n", op );
+			fprintf( stderr, "Unsupported operation, %d\n", op );
 			return 1;
 	}
 

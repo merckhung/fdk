@@ -1,48 +1,30 @@
-#define FDK_MAXSZ_PKT	2048
-#define FDK_FIFO_SZ		14
-#define FDK_SECTOR_SZ	512
+#define FDK_MAXSZ_PKT		2048
+#define FDK_FIFO_SZ			14
+
+#define FDK_SECTOR_SZ		512
 #define FDK_SECTOR_SZULL	512ULL
-#define FDK_IDE_BUF		(FDK_SECTOR_SZ * 2)
-#define FDK_CMOS_ADDR	0x70
-#define FDK_CMOS_DATA	0x71
+#define FDK_IDE_BUF			(FDK_SECTOR_SZ * 2)
 
 
 typedef enum {
 
-	UART_PORT0 = 0x03F8,
-	UART_PORT1 = 0x02F8,
+	FDK_CAP_MEM		= 0x00000001,
+	FDK_CAP_IO		= 0x00000002,
+	FDK_CAP_PCI		= 0x00000004,
+	FDK_CAP_IDE		= 0x00000008,
+	FDK_CAP_E820	= 0x00000010,
+	FDK_CAP_I2C		= 0x00000020,
 
-} fdkDebugPort_t;
-
-
-typedef enum {
-
-	FDK_UNKNOWN = 0,
-	FDK_INIT,
-	FDK_READY,
-	FDK_PKT_TRAN,
-	FDK_PKT_RECV,
-	FDK_PKT_DONE,
-
-} fdkState_t;
-
-
-typedef enum {
-
-	FDK_BAUD_115200 = 0x01,
-	FDK_BAUD_38400 = 0x03,
-	FDK_BAUD_19200 = 0x06,
-	FDK_BAUD_9600 = 0x0C,
-	FDK_BAUD_2400 = 0x30,
-	FDK_BAUD_1200 = 0x60,
-
-} fdkBaudrate_t;
+} fdkCapability;
 
 
 typedef enum {
 
 	FDK_REQ_CONNECT = 1,
 	FDK_RSP_CONNECT,
+
+	FDK_REQ_DISCONNECT,
+	FDK_RSP_DISCONNECT,
 
 	FDK_REQ_MEM_READ,
 	FDK_RSP_MEM_READ,
@@ -270,7 +252,7 @@ typedef struct PACKED {
 	union {
 
 		// Common
-		fdkCommHdr_t				fdkCommHdr;
+		fdkCommHdr_t			fdkCommHdr;
 
 		// Memory Read
 		fdkReqMemReadPkt_t		fdkReqMemReadPkt;
@@ -325,9 +307,5 @@ typedef struct PACKED {
 	};
 
 } fdkCommPkt_t;
-
-
-// Prototypes
-void fdkInitialization( fdkDebugPort_t port );
 
 

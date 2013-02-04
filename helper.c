@@ -44,6 +44,8 @@ void pciWriteConfDWord( u32 addr, u32 value );
 u8 pciReadConfByte( u32 addr );
 void pciWriteConfByte( u32 addr, u8 value );
 
+s32 cmosInitialize( void );
+
 
 u32 pciBaseAddress( u32 bus, u32 dev, u32 func, u32 reg ) {
 
@@ -128,6 +130,15 @@ u32 fdkPciDetectDevice( fdkPciDev_t *pFdkPciDev ) {
 }
 
 
+s32 cmosInitialize( void ) {
+
+    if( ioperm( FDK_CMOS_ADDR, FDK_CMOS_DATA, 1 ) )
+        return FALSE;
+
+    return TRUE;
+}
+
+
 s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 
 	u32 sz = 0;
@@ -138,14 +149,18 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 	u8 cmosAddr = 0, cmosSz = 0;
 	u32 i;
 	s8 *ptr;
+	s32 ret = 0;
 
 	// Basic heck for a corrupt packet
 	if( (rByte < sizeof( fdkCommHdr_t ))
 		|| (rByte < pFdkCommPkt->fdkCommHdr.pktLen) )
 		return -1;
 
+	// Grant the necessary IO permission
 	if( pciInitialize() == FALSE )
         return -1;
+	if( cmosInitialize() == FALSE )
+		return -1;
 
 	// Handle OPcode
 	switch( pFdkCommPkt->fdkCommHdr.opCode ) {
@@ -157,7 +172,16 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 		pFdkCommPkt->fdkCommHdr.pktLen = sizeof( fdkCommHdr_t );
 		pFdkCommPkt->fdkCommHdr.errorCode = FDK_SUCCESS;
 		break;
-	
+
+	case FDK_REQ_DISCONNECT:
+
+		// Prepare the response packet
+		pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_DISCONNECT;
+		pFdkCommPkt->fdkCommHdr.pktLen = sizeof( fdkCommHdr_t );
+		pFdkCommPkt->fdkCommHdr.errorCode = FDK_SUCCESS;
+		ret = -1;
+		break;
+
 	case FDK_REQ_MEM_READ:
 
 #if 0
@@ -420,7 +444,7 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 		break;
 	}
 
-	return 0;
+	return ret;
 }
 
 

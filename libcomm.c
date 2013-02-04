@@ -455,6 +455,37 @@ commonLinklist_t *retriveFirstLinklist( commonLinklist_t **head ) {
 }
 
 
+commonLinklist_t *removeLinklist( commonLinklist_t **head, commonLinklist_t *tgt ) {
+
+	commonLinklist_t *curr = *head, *prev = NULL;
+
+	if( !*head )
+		return NULL;
+
+	if( *head == tgt ) {
+
+		if( (*head)->next )
+			*head = (*head)->next;
+		else
+			*head = NULL;
+
+		return curr;
+	}
+
+    for( prev = *head, curr = (*head)->next ; 
+		curr ; prev = curr, curr = curr->next ) {
+
+		if( curr == tgt ) {
+
+			prev->next = curr->next;
+			return curr;
+		}
+	}
+
+	return NULL;
+}
+
+
 void freeLinklist( commonLinklist_t *head ) {
     
     commonLinklist_t *prev;

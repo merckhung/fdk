@@ -376,6 +376,7 @@ typedef struct {
 s32 verifyResponsePacket( fdkCommPkt_t *pFdkCommPkt, fdkOpCode_t op );
 s32 executeFunction( s32 fd, fdkOpCode_t op, u64 addr, u32 size, u8 *cntBuf, u8 *pktBuf, s32 lenPktBuf );
 s32 connectToFdkServer( fdkUiProperty_t *pFdkUiProperty );
+s32 disconnectFromFdkServer( fdkUiProperty_t *pFdkUiProperty );
 s32 readPciList( fdkUiProperty_t *pFdkUiProperty );
 fdkPciDev_t *getPciDevice( fdkUiProperty_t *pFdkUiProperty, s32 num );
 s32 readE820List( fdkUiProperty_t *pFdkUiProperty );

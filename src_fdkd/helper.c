@@ -16,6 +16,7 @@
 #include <packet.h>
 #include <libmem.h>
 #include <libpci.h>
+#include <libdisk.h>
 
 
 u32 fdkPciDetectDevice( fdkPciDev_t *pFdkPciDev ) {
@@ -233,15 +234,13 @@ s32 handleRequestPacket( s32 cfd, s32 memfd, fdkCommPkt_t *pFdkCommPkt, u32 rByt
 
     case FDK_REQ_IDE_READ:
 
-#if 0
         // Read IDE device
         ptr = (s8 *)&pFdkCommPkt->fdkRspIdeReadPkt.ideContent;
         addr = pFdkCommPkt->fdkReqIdeReadPkt.address;
         sz = pFdkCommPkt->fdkReqIdeReadPkt.size;
 
 		// Read IDE data
-		FdkIdeReadWrite( addr, sz, (u8 *)ptr, Fdk_REQ_IDE_READ );
-#endif
+		fdkDiskReadWrite( addr, sz, (u8 *)ptr, FDK_REQ_IDE_READ );
 
         // Prepare the response packet
         pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_IDE_READ;
@@ -254,15 +253,13 @@ s32 handleRequestPacket( s32 cfd, s32 memfd, fdkCommPkt_t *pFdkCommPkt, u32 rByt
 
 	case FDK_REQ_IDE_WRITE:
 
-#if 0
 		// Write IDE device
 		ptr = (s8 *)&pFdkCommPkt->fdkReqIdeWritePkt.ideContent;
 		addr = pFdkCommPkt->fdkReqIdeReadPkt.address;
 		sz = pFdkCommPkt->fdkReqIdeReadPkt.size;
 
 		// Write IDE data
-		FdkIdeReadWrite( addr, sz, (u8 *)ptr, Fdk_REQ_IDE_WRITE );
-#endif
+		fdkDiskReadWrite( addr, sz, (u8 *)ptr, FDK_REQ_IDE_WRITE );
 
 		// Prepare the response packet
 		pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_IDE_WRITE;

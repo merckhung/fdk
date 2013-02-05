@@ -22,7 +22,7 @@ PATH_LIB			:=	lib
 OBJS_COMMON			:=	$(PATH_LIB)/packet.o $(PATH_LIB)/netsock.o $(PATH_LIB)/libcomm.o
 
 PATH_FDKD			:=	src_fdkd
-OBJS_FDKD			:=	$(PATH_FDKD)/fdkd.o $(PATH_FDKD)/helper.o $(PATH_FDKD)/linux/libmem.o $(PATH_FDKD)/linux/pc/libpci.o $(OBJS_COMMON)
+OBJS_FDKD			:=	$(PATH_FDKD)/fdkd.o $(PATH_FDKD)/helper.o $(PATH_FDKD)/linux/libmem.o $(PATH_FDKD)/linux/libdisk.o $(PATH_FDKD)/linux/pc/libpci.o $(OBJS_COMMON)
 CFLAGS_FDKD			:=	$(CFLAGS)
 LDFLAGS_FDKD		:=	$(LDFLAGS) -lpthread
 

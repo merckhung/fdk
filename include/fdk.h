@@ -6,10 +6,11 @@
 #define FDK_DEF_PORT			7123	
 #define FDK_PKTSIZE				5120
 
-#define FDK_COPYRIGHT_TEXT		"Copyright (c) 2012 All rights reserved."
-#define FDK_REVISION			"0.0.1"
+#define FDK_COPYRIGHT_TEXT		"Copyright (c) 2013 Merck Hung All rights reserved."
+#define FDK_REVISION			"2.0.0"
 #define FDK_AUTHOR_NAME			"Merck Hung <merckhung@gmail.com>"
 #define FDKD_PROGRAM_NAME		"Firmware Debug Kit Server"
 #define CFDK_PROGRAM_NAME		"Firmware Debug Kit"
+#define MEMVR_PROGRAM_NAME		"Text Mode Memory Viewer"
 
 

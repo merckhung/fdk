@@ -78,20 +78,13 @@ u32 CbAsciiBufToBin( const s8 *buf ) {
 
 bool ParseOneParameter( s8 *buf, u32 *first ) {
 
-
     // Check length
-    if( strlen( buf ) > 10 ) {
-
+    if( strlen( buf ) > 10 )
         return FALSE;
-    }
-
 
     // Check hex digits
-    if( !((*buf == '0') && (*(buf + 1) == 'x')) ) {
-    
+    if( !((*buf == '0') && (*(buf + 1) == 'x')) )
         return FALSE;
-    } 
-
 
     *first = CbAsciiBufToBin( buf + 2 );
     return TRUE;
@@ -102,45 +95,30 @@ bool ParseTwoParameters( s8 *buf, u32 *first, u32 *second ) {
 
     s8 *sec;
 
-
     // Check length
-    if( strlen( buf ) > 21 ) {
-
+    if( strlen( buf ) > 21 )
         return FALSE;
-    }
-
 
     // Check hex digits
-    if( !((*buf == '0') && (*(buf + 1) == 'x')) ) {
-    
+    if( !((*buf == '0') && (*(buf + 1) == 'x')) )
         return FALSE;
-    } 
-
 
     // Search '/'
     sec = index( buf, '/' );
-    if( !sec ) {
-    
+    if( !sec )
         return FALSE;
-    }
-
 
     // Separate string into first and second
     *sec = 0;
     sec++;
 
-
     // Check hex digits
-    if( !((*sec == '0') && (*(sec + 1) == 'x')) ) {
-    
+    if( !((*sec == '0') && (*(sec + 1) == 'x')) )
         return FALSE;
-    } 
-
 
     // Convert ASCII to Binary
     *first = CbAsciiBufToBin( buf + 2 );
     *second = CbAsciiBufToBin( sec + 2 );
-
 
     return TRUE;
 }

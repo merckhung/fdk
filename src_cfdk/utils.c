@@ -33,10 +33,10 @@ s32 connectToFdkServer( fdkUiProperty_t *pFdkUiProperty ) {
 }
 
 
-s32 disconnectFromFdkServer( fdkUiProperty_t *pFdkUiProperty ) {
+void disconnectFromFdkServer( fdkUiProperty_t *pFdkUiProperty ) {
 
-    // Connect to FDK server
-    return executeFunction(
+    // Disconnect to FDK server
+    executeFunction(
             pFdkUiProperty->fd,
             FDK_REQ_DISCONNECT,
             0,

@@ -16,7 +16,7 @@ STRIP               :=   $(CROSS_COMPILE)strip
 CFLAGS				:=	-Iinclude -Wall -g3
 LDFLAGS				:=
 
-MODULES				:=	fdkd cfdk
+MODULES				:=	fdkd cfdk memvr
 
 PATH_LIB			:=	lib
 OBJS_COMMON			:=	$(PATH_LIB)/packet.o $(PATH_LIB)/netsock.o $(PATH_LIB)/libcomm.o
@@ -31,6 +31,11 @@ OBJS_CFDK			:=	$(PATH_CFDK)/cfdk.o $(PATH_CFDK)/pciListPanel.o $(PATH_CFDK)/dump
 CFLAGS_CFDK			:=	$(CFLAGS)
 LDFLAGS_CFDK		:=	$(LDFLAGS) -lpanel -lncurses
 
+PATH_MEMVR			:=	src_memvr
+OBJS_MEMVR			:=	$(PATH_MEMVR)/memvr.o $(PATH_MEMVR)/utils.o $(OBJS_COMMON)
+CFLAGS_MEMVR		:=	$(CFLAGS)
+LDFLAGS_MEMVR		:=	$(LDFLAGS)
+
 
 all: $(MODULES)
 
@@ -39,6 +44,9 @@ fdkd: $(OBJS_FDKD)
 
 cfdk: $(OBJS_CFDK)
 	@$(CC) $(CFLAGS_CFDK) $(LDFLAGS_CFDK) -o $@ $(OBJS_CFDK)
+
+memvr: $(OBJS_MEMVR)
+	@$(CC) $(CFLAGS_MEMVR) $(LDFLAGS_MEMVR) -o $@ $(OBJS_MEMVR)
 
 %.o: %.c
 	@$(CC) $(CFLAGS) -c -o $@ $<

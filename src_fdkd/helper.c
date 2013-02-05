@@ -86,7 +86,7 @@ s32 handleRequestPacket( s32 cfd, s32 memfd, fdkCommPkt_t *pFdkCommPkt, u32 rByt
 		pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_DISCONNECT;
 		pFdkCommPkt->fdkCommHdr.pktLen = sizeof( fdkCommHdr_t );
 		pFdkCommPkt->fdkCommHdr.errorCode = FDK_SUCCESS;
-		ret = -1;
+		ret = -2;
 		break;
 
 	case FDK_REQ_MEM_READ:

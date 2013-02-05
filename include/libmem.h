@@ -17,8 +17,5 @@ u32 memWriteBuffer( s32 fd, u64 addr, u32 len, u8 *buf );
 u8 memWriteByte( s32 fd, u64 addr, u8 val );
 u16 memWriteWord( s32 fd, u64 addr, u16 val );
 u32 memWriteDWord( s32 fd, u64 addr, u32 val );
-void memORDWord( s32 fd, u64 addr, u32 val );
-void memANDDWord( s32 fd, u64 addr, u32 val );
-void memCOMANDDWord( s32 fd, u64 addr, u32 val );
 
 

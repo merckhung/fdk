@@ -317,3 +317,8 @@ typedef struct PACKED {
 } fdkCommPkt_t;
 
 
+// Prototypes
+s32 verifyResponsePacket( fdkCommPkt_t *pFdkCommPkt, fdkOpCode_t op );
+s32 executeFunction( s32 fd, fdkOpCode_t op, u64 addr, u32 size, u8 *cntBuf, u8 *pktBuf, s32 lenPktBuf );
+
+

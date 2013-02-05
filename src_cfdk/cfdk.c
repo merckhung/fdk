@@ -531,11 +531,7 @@ ErrExit1:
 ErrExit:
 
 	// Disconnect from the server
-	if( connectToFdkServer( &fdkUiProperty ) ) {
-
-		fprintf( stderr, "Cannot disconnect from FDK server\n" );
-	}
-
+	disconnectFromFdkServer( &fdkUiProperty );
 	if( !useIp ) {
 
 		// Close TTY device

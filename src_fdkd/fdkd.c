@@ -37,6 +37,7 @@ static void help( void ) {
 void *handleIncomingConnection( void *arg ) {
 
 	threadList_t *pThreadList = (threadList_t *)arg;
+	s32 sts;
 
 	// Sanity check
 	if( !pThreadList )
@@ -60,11 +61,12 @@ void *handleIncomingConnection( void *arg ) {
 			break;
 
 		// Handle this packet
-		if( !handleRequestPacket(
+		sts = handleRequestPacket(
 				pThreadList->cfd,
 				pThreadList->memfd,
 				(fdkCommPkt_t *)pThreadList->packet,
-				pThreadList->rwByte ) ) {
+				pThreadList->rwByte );
+		if( !sts || sts == -2 ) {
 
 			// Response
 			transferSocket(

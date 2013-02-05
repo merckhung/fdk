@@ -231,34 +231,3 @@ u32 memWriteDWord( s32 fd, u64 addr, u32 val ) {
 }
 
 
-void memORDWord( s32 fd, u64 addr, u32 val ) {
-
-	u32 tmp;
-
-	tmp = memReadDWord( fd, addr );
-	tmp |= val;
-	memWriteDWord( fd, addr, tmp );
-}
-
-
-void memANDDWord( s32 fd, u64 addr, u32 val ) {
-
-	u32 tmp;
-
-	tmp = memReadDWord( fd, addr );
-	tmp &= val;
-	memWriteDWord( fd, addr, tmp );
-}
-
-
-void memCOMANDDWord( s32 fd, u64 addr, u32 val ) {
-
-	u32 tmp;
-
-	val = ~val;
-	tmp = memReadDWord( fd, addr );
-	tmp &= val;
-	memWriteDWord( fd, addr, tmp );
-}
-
-

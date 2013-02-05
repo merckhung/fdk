@@ -1,3 +1,20 @@
+/*
+ * FDK - Firmware Debug Kit
+ * File: cfdk.h
+ *
+ * Copyright (C) 2006 - 2013 Merck Hung <merckhung@gmail.com>
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
+
 #define FDK_MIN_LINE				0
 #define FDK_MIN_COLUMN				0
 #define FDK_MAX_LINE				23

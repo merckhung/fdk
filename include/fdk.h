@@ -1,3 +1,20 @@
+/*
+ * FDK - Firmware Debug Kit
+ * File: fdk.h
+ *
+ * Copyright (C) 2006 - 2013 Merck Hung <merckhung@gmail.com>
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
+
 #define FDK_MAX_PATH			256
 #define FDK_DEF_PCIIDS			"/usr/share/misc/pci.ids"
 #define FDK_DEF_TTYDEV			"/dev/pts/0"

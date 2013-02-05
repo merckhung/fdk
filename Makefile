@@ -18,13 +18,16 @@ LDFLAGS				:=
 
 MODULES				:=	fdkd cfdk
 
-OBJS_COMMON			:=	packet.o netsock.o libcomm.o
+PATH_LIB			:=	lib
+OBJS_COMMON			:=	$(PATH_LIB)/packet.o $(PATH_LIB)/netsock.o $(PATH_LIB)/libcomm.o
 
-OBJS_FDKD			:=	fdkd.o helper.o libmem.o libpci.o $(OBJS_COMMON)
+PATH_FDKD			:=	src_fdkd
+OBJS_FDKD			:=	$(PATH_FDKD)/fdkd.o $(PATH_FDKD)/helper.o $(PATH_FDKD)/linux/libmem.o $(PATH_FDKD)/linux/pc/libpci.o $(OBJS_COMMON)
 CFLAGS_FDKD			:=	$(CFLAGS)
 LDFLAGS_FDKD		:=	$(LDFLAGS) -lpthread
 
-OBJS_CFDK			:=	cfdk.o pciListPanel.o dumpPanel.o utils.o $(OBJS_COMMON)
+PATH_CFDK			:=	src_cfdk
+OBJS_CFDK			:=	$(PATH_CFDK)/cfdk.o $(PATH_CFDK)/pciListPanel.o $(PATH_CFDK)/dumpPanel.o $(PATH_CFDK)/utils.o $(OBJS_COMMON)
 CFLAGS_CFDK			:=	$(CFLAGS)
 LDFLAGS_CFDK		:=	$(LDFLAGS) -lpanel -lncurses
 
@@ -41,6 +44,7 @@ cfdk: $(OBJS_CFDK)
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	@$(RM) -f *.o $(MODULES)
+	@$(RM) -f $(MODULES)
+	$(shell find ./ -name "*.o" -exec rm -f {} \;)
 
 

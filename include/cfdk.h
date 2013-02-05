@@ -40,7 +40,7 @@
 #define FDK_HELP_X_POS				3
 #define FDK_HELP_Y_POS				2
 
-#define FDK_WELCOME_TXT				"Welcome to Firmware Debug Kit. Copyright (C) 2006 - 2012, Merck Hung all right reserved. Contact Merck Hung, Email: merckhung@gmail.com, Cell: +886-975-586938, City: Taipei City, Taiwan."
+#define FDK_WELCOME_TXT				"Welcome to " CFDK_PROGRAM_NAME ". " FDK_COPYRIGHT_TEXT ". Author: " FDK_AUTHOR_NAME ", Cell: +886-975-586938"
 
 #define FDK_DUMP_TOP_BAR			"00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F"
 #define FDK_DUMP_LEFT_BAR			"000000100020003000400050006000700080009000A000B000C000D000E000F0"

@@ -14,99 +14,16 @@
 #include <libcomm.h>
 #include <netsock.h>
 #include <packet.h>
-
-
-#define PCI_ADDR_PORT           0xCF8
-#define PCI_DATA_PORT           0xCFC
-#define PCI_DATA_PORT_END       0xCFC
-
-#define PCI_ADDR_ENABLE         0x80000000
-
-#define PCI_BUS_MASK            0xFF
-#define PCI_DEV_MASK            0x1F
-#define PCI_FUNC_MASK           0x07
-#define PCI_REG_MASK            0xFF
-#define PCI_REG_ALIGN           0x00000003
-
-#define PCI_BUS_OFFSET          16
-#define PCI_DEV_OFFSET          11
-#define PCI_FUNC_OFFSET         8
-#define PCI_REG_OFFSET          2
-#define PCI_BITS_BYTE           8
-
-#define FDK_CMOS_ADDR			0x70
-#define FDK_CMOS_DATA			0x71
-
-
-u32 pciBaseAddress( u32 bus, u32 dev, u32 fun, u32 reg );
-u32 pciReadConfDWord( u32 addr );
-void pciWriteConfDWord( u32 addr, u32 value );
-u8 pciReadConfByte( u32 addr );
-void pciWriteConfByte( u32 addr, u8 value );
-
-s32 cmosInitialize( void );
-
-
-u32 pciBaseAddress( u32 bus, u32 dev, u32 func, u32 reg ) {
-
-    return (PCI_ADDR_ENABLE
-        | ((bus & PCI_BUS_MASK) << PCI_BUS_OFFSET)
-        | ((dev & PCI_DEV_MASK) << PCI_DEV_OFFSET)
-        | ((func & PCI_FUNC_MASK) << PCI_FUNC_OFFSET)
-		| ((reg & PCI_REG_MASK) << PCI_REG_OFFSET));
-}
-
-
-s32 pciInitialize( void ) {
-
-    if( ioperm( PCI_ADDR_PORT, PCI_DATA_PORT_END, 1 ) )
-        return FALSE;
-
-    return TRUE;
-}
-
-
-u32 pciReadConfDWord( u32 addr ) {
-
-    outl( addr, PCI_ADDR_PORT );
-    return inl( PCI_DATA_PORT );
-}
-
-
-void pciWriteConfDWord( u32 addr, u32 value ) {
-
-    outl( addr, PCI_ADDR_PORT );
-    outl( value, PCI_DATA_PORT );
-}
-
-
-u8 pciReadConfByte( u32 addr ) {
-
-    u32 off = addr & PCI_REG_ALIGN;
-    return (pciReadConfDWord( addr & (~PCI_REG_ALIGN) ) >> (off * PCI_BITS_BYTE)) & 0xFFUL;
-}
-
-
-void pciWriteConfByte( u32 addr, u8 value ) {
-
-    u32 off = addr & PCI_REG_ALIGN;
-    u32 val, mask = (0xFFUL << (off * PCI_BITS_BYTE));
-    u32 input = value;
-
-    input <<= (off * PCI_BITS_BYTE);
-    val = pciReadConfDWord( addr & (~PCI_REG_ALIGN) ) & mask;
-    val |= input;
-
-    pciWriteConfDWord( addr & (~PCI_REG_ALIGN), input );
-}
+#include <libmem.h>
+#include <libpci.h>
 
 
 u32 fdkPciDetectDevice( fdkPciDev_t *pFdkPciDev ) {
 
-	u32 value;
+    u32 value;
     u16 bus;
     u8 dev, func;
-	u32 count = 0;
+    u32 count = 0;
 
     for( bus = 0 ; bus <= PCI_BUS_MASK ; bus++ )
         for( dev = 0 ; dev <= PCI_DEV_MASK ; dev++ )
@@ -115,31 +32,22 @@ u32 fdkPciDetectDevice( fdkPciDev_t *pFdkPciDev ) {
                 value = pciReadConfDWord( pciBaseAddress( bus, dev, func, 0 ) );
                 if( value != 0xFFFFFFFF ) {
 
-					pFdkPciDev->bus = bus;
-					pFdkPciDev->dev = dev;
-					pFdkPciDev->fun = func;
-					pFdkPciDev->vendorId = value & 0xFFFF;
-					pFdkPciDev->deviceId = (value >> 16) & 0xFFFF;
+                    pFdkPciDev->bus = bus;
+                    pFdkPciDev->dev = dev;
+                    pFdkPciDev->fun = func;
+                    pFdkPciDev->vendorId = value & 0xFFFF;
+                    pFdkPciDev->deviceId = (value >> 16) & 0xFFFF;
 
-					count++;
-					pFdkPciDev++;
+                    count++;
+                    pFdkPciDev++;
                 }
             }
 
-	return count;
+    return count;
 }
 
 
-s32 cmosInitialize( void ) {
-
-    if( ioperm( FDK_CMOS_ADDR, FDK_CMOS_DATA, 1 ) )
-        return FALSE;
-
-    return TRUE;
-}
-
-
-s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
+s32 handleRequestPacket( s32 cfd, s32 memfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 
 	u32 sz = 0;
 	u64 addr = 0;
@@ -150,6 +58,7 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 	u32 i;
 	s8 *ptr;
 	s32 ret = 0;
+	fdkErrorCode_t fdkErrCode;
 
 	// Basic heck for a corrupt packet
 	if( (rByte < sizeof( fdkCommHdr_t ))
@@ -159,8 +68,6 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 	// Grant the necessary IO permission
 	if( pciInitialize() == FALSE )
         return -1;
-	if( cmosInitialize() == FALSE )
-		return -1;
 
 	// Handle OPcode
 	switch( pFdkCommPkt->fdkCommHdr.opCode ) {
@@ -184,47 +91,41 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 
 	case FDK_REQ_MEM_READ:
 
-#if 0
 		// Read memory content
+		fdkErrCode = FDK_SUCCESS;
 		ptr = (s8 *)&pFdkCommPkt->fdkRspMemReadPkt.memContent;
 		addr = pFdkCommPkt->fdkReqMemReadPkt.address;
-		phyMem = (volatile u8 *)(u32)addr;
 		sz = pFdkCommPkt->fdkReqMemReadPkt.size;
 
-		for( i = 0 ; i < sz ; i++ ) {
-
-			*(ptr + i) = *(phyMem + i);
-		}
-#endif
+		// Read memory content to a buffer
+		if( memReadBuffer( memfd, addr, sz, (u8 *)ptr ) )
+			fdkErrCode = FDK_FAILURE;
 
 		// Prepare the response packet
 		pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_MEM_READ;
 		pFdkCommPkt->fdkCommHdr.pktLen = 
 			sizeof( fdkRspMemReadPkt_t ) - sizeof( s8 * ) + sz;
-		pFdkCommPkt->fdkCommHdr.errorCode = FDK_SUCCESS;
+		pFdkCommPkt->fdkCommHdr.errorCode = fdkErrCode;
 		pFdkCommPkt->fdkRspMemReadPkt.address = addr;
 		pFdkCommPkt->fdkRspMemReadPkt.size = sz;
 		break;
 
 	case FDK_REQ_MEM_WRITE:
 
-#if 0
 		// write memory content
+		fdkErrCode = FDK_SUCCESS;
 		ptr = (s8 *)&pFdkCommPkt->fdkReqMemWritePkt.memContent;
 		addr = pFdkCommPkt->fdkReqMemWritePkt.address;
-		phyMem = (volatile u8 *)(u32)addr;
 		sz = pFdkCommPkt->fdkReqMemWritePkt.size;
 
-		for( i = 0 ; i < sz ; i++ ) {
-
-			*(phyMem + i) = *(ptr + i);
-		}
-#endif
+        // Write memory content with a buffer
+		if( memWriteBuffer( memfd, addr, sz, (u8 *)ptr ) )
+			fdkErrCode = FDK_FAILURE;
 
 		// Prepare the response packet
 		pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_MEM_WRITE;
 		pFdkCommPkt->fdkCommHdr.pktLen = sizeof( fdkRspMemWritePkt_t );
-		pFdkCommPkt->fdkCommHdr.errorCode = FDK_SUCCESS;
+		pFdkCommPkt->fdkCommHdr.errorCode = fdkErrCode;
 		pFdkCommPkt->fdkRspMemWritePkt.address = addr;
 		pFdkCommPkt->fdkRspMemWritePkt.size = sz;
 		break;
@@ -232,21 +133,30 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 	case FDK_REQ_IO_READ:
 
 		// Read IO content
+		fdkErrCode = FDK_SUCCESS;
 		ptr = (s8 *)&pFdkCommPkt->fdkRspIoReadPkt.ioContent;
 		ioAddr = pFdkCommPkt->fdkReqIoReadPkt.address;
 		sz = pFdkCommPkt->fdkReqIoReadPkt.size;
 
-		for( i = 0 ; i < sz ; i++ ) {
+		if( !ioperm( ioAddr, ioAddr + sz, 1 ) ) {
 
-			// Read IO data
-			*(ptr + i) = inb( ioAddr + i );
+			for( i = 0 ; i < sz ; i++ ) {
+
+				// Read IO data
+				*(ptr + i) = inb( ioAddr + i );
+			}
+		}
+		else {
+
+			fdkErrCode = FDK_FAILURE;
+			memset( ptr, sz, 0xFF );
 		}
 
 		// Prepare the response packet
 		pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_IO_READ;
 		pFdkCommPkt->fdkCommHdr.pktLen = 
 			sizeof( fdkRspIoReadPkt_t ) - sizeof( s8 * ) + sz;
-		pFdkCommPkt->fdkCommHdr.errorCode = FDK_SUCCESS;
+		pFdkCommPkt->fdkCommHdr.errorCode = fdkErrCode;
 		pFdkCommPkt->fdkRspIoReadPkt.address = ioAddr;
 		pFdkCommPkt->fdkRspIoReadPkt.size = sz;
 		break;
@@ -254,20 +164,26 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 	case FDK_REQ_IO_WRITE:
 
 		// Write IO content
+		fdkErrCode = FDK_SUCCESS;
 		ptr = (s8 *)&pFdkCommPkt->fdkReqIoWritePkt.ioContent;
 		ioAddr = pFdkCommPkt->fdkReqIoReadPkt.address;
 		sz = pFdkCommPkt->fdkReqIoReadPkt.size;
 
-		for( i = 0 ; i < sz ; i++ ) {
+        if( !ioperm( ioAddr, ioAddr + sz, 1 ) ) {
 
-			// Write IO data
-			outb( *(ptr + i), ioAddr + i );
+			for( i = 0 ; i < sz ; i++ ) {
+
+				// Write IO data
+				outb( *(ptr + i), ioAddr + i );
+			}
 		}
+		else
+			fdkErrCode = FDK_FAILURE;
 
 		// Prepare the response packet
 		pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_IO_WRITE;
 		pFdkCommPkt->fdkCommHdr.pktLen = sizeof( fdkRspIoWritePkt_t );
-		pFdkCommPkt->fdkCommHdr.errorCode = FDK_SUCCESS;
+		pFdkCommPkt->fdkCommHdr.errorCode = fdkErrCode;
 		pFdkCommPkt->fdkRspIoWritePkt.address = ioAddr;
 		pFdkCommPkt->fdkRspIoWritePkt.size = sz;
 		break;
@@ -278,6 +194,7 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
         ptr = (s8 *)&pFdkCommPkt->fdkRspPciReadPkt.pciContent;
         pciAddr = pFdkCommPkt->fdkReqPciReadPkt.address;
         pciSz = pFdkCommPkt->fdkReqPciReadPkt.size;
+
         for( i = 0 ; i < pciSz ; i++ ) {
 
          	// Read PCI config data
@@ -358,24 +275,31 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 	case FDK_REQ_CMOS_READ:
 
 		// Read CMOS device
+		fdkErrCode = FDK_SUCCESS;
         ptr = (s8 *)&pFdkCommPkt->fdkRspCmosReadPkt.cmosContent;
         cmosAddr = pFdkCommPkt->fdkReqCmosReadPkt.address;
         cmosSz = pFdkCommPkt->fdkReqCmosReadPkt.size;
 
-		// Read CMOS data
-		for( i = 0 ; i < cmosSz ; i++ ) {
+		if( cmosInitialize() == TRUE ) {
 
-			// Write CMOS address
-			outb( i, FDK_CMOS_ADDR );
 			// Read CMOS data
-			*(ptr + i) = inb( FDK_CMOS_DATA );
+			for( i = 0 ; i < cmosSz ; i++ ) {
+
+				// Write CMOS address
+				outb( i, FDK_CMOS_ADDR );
+
+				// Read CMOS data
+				*(ptr + i) = inb( FDK_CMOS_DATA );
+			}
 		}
+		else
+			fdkErrCode = FDK_FAILURE;
 
         // Prepare the response packet
         pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_CMOS_READ;
         pFdkCommPkt->fdkCommHdr.pktLen =
         	sizeof( fdkRspCmosReadPkt_t ) - sizeof( s8 * ) + cmosSz;
-        pFdkCommPkt->fdkCommHdr.errorCode = FDK_SUCCESS;
+        pFdkCommPkt->fdkCommHdr.errorCode = fdkErrCode;
         pFdkCommPkt->fdkRspCmosReadPkt.address = cmosAddr;
         pFdkCommPkt->fdkRspCmosReadPkt.size = cmosSz;
         break;
@@ -383,23 +307,30 @@ s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte ) {
 	case FDK_REQ_CMOS_WRITE:
 
 		// Write CMOS device
+		fdkErrCode = FDK_SUCCESS;
 		ptr = (s8 *)&pFdkCommPkt->fdkReqCmosWritePkt.cmosContent;
 		cmosAddr = pFdkCommPkt->fdkReqCmosReadPkt.address;
 		cmosSz = pFdkCommPkt->fdkReqCmosReadPkt.size;
 
-		// Write CMOS data
-		for( i = 0 ; i < cmosSz ; i++ ) {
+		if( cmosInitialize() == TRUE ) {
 
-			// Write CMOS address
-			outb( i, FDK_CMOS_ADDR );
 			// Write CMOS data
-			outb( *(ptr + i), FDK_CMOS_DATA );
+			for( i = 0 ; i < cmosSz ; i++ ) {
+
+				// Write CMOS address
+				outb( i, FDK_CMOS_ADDR );
+
+				// Write CMOS data
+				outb( *(ptr + i), FDK_CMOS_DATA );
+			}
 		}
+		else
+			fdkErrCode = FDK_FAILURE;
 
 		// Prepare the response packet
 		pFdkCommPkt->fdkCommHdr.opCode = FDK_RSP_CMOS_WRITE;
 		pFdkCommPkt->fdkCommHdr.pktLen = sizeof( fdkRspCmosWritePkt_t );
-		pFdkCommPkt->fdkCommHdr.errorCode = FDK_SUCCESS;
+		pFdkCommPkt->fdkCommHdr.errorCode = fdkErrCode;
 		pFdkCommPkt->fdkRspCmosWritePkt.address = cmosAddr;
 		pFdkCommPkt->fdkRspCmosWritePkt.size = cmosSz;
 		break;

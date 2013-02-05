@@ -514,7 +514,7 @@ DirectTransition:
 		doupdate();
 
 		// Delay for a while
-		usleep( 30000 );
+		usleep( 3000 );
 	}
 
 Exit:

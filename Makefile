@@ -18,13 +18,13 @@ LDFLAGS				:=
 
 MODULES				:=	fdkd cfdk
 
-OBJS_COMMON			:=	packet.o utils.o netsock.o libcomm.o
+OBJS_COMMON			:=	packet.o netsock.o libcomm.o
 
-OBJS_FDKD			:=	fdkd.o helper.o $(OBJS_COMMON)
+OBJS_FDKD			:=	fdkd.o helper.o libmem.o libpci.o $(OBJS_COMMON)
 CFLAGS_FDKD			:=	$(CFLAGS)
 LDFLAGS_FDKD		:=	$(LDFLAGS) -lpthread
 
-OBJS_CFDK			:=	cfdk.o pciListPanel.o dumpPanel.o $(OBJS_COMMON)
+OBJS_CFDK			:=	cfdk.o pciListPanel.o dumpPanel.o utils.o $(OBJS_COMMON)
 CFLAGS_CFDK			:=	$(CFLAGS)
 LDFLAGS_CFDK		:=	$(LDFLAGS) -lpanel -lncurses
 

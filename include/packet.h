@@ -77,12 +77,12 @@ typedef enum {
 } fdkOpCode_t;
 
 
-typedef enum _kdbgErrorCode {
+typedef enum _fdkErrorCode {
 
 	FDK_SUCCESS = 0,
 	FDK_FAILURE,
 
-} kdbgErrorCode_t;
+} fdkErrorCode_t;
 
 
 typedef struct PACKED {
@@ -299,8 +299,8 @@ typedef struct PACKED {
 		fdkRspCmosReadPkt_t		fdkRspCmosReadPkt;
 
 		// CMOS Write
-		fdkReqCmosWritePkt_t		fdkReqCmosWritePkt;
-		fdkRspCmosWritePkt_t		fdkRspCmosWritePkt;
+		fdkReqCmosWritePkt_t	fdkReqCmosWritePkt;
+		fdkRspCmosWritePkt_t	fdkRspCmosWritePkt;
 
 		// PCI List
 		fdkReqPciListPkt_t		fdkReqPciListPkt;

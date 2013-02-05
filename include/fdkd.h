@@ -9,9 +9,11 @@ typedef struct _threadList {
 	s8					packet[ FDK_PKTSIZE ];
 	u32					rwByte;
 
+	s32					memfd;
+
 } threadList_t;
 
 
-s32 handleRequestPacket( s32 cfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte );
+s32 handleRequestPacket( s32 cfd, s32 memfd, fdkCommPkt_t *pFdkCommPkt, u32 rByte );
 
 

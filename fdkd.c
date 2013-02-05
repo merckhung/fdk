@@ -12,6 +12,7 @@
 #include <mtypes.h>
 #include <fdk.h>
 #include <libcomm.h>
+#include <libmem.h>
 #include <netsock.h>
 #include <packet.h>
 #include <fdkd.h>
@@ -41,6 +42,11 @@ void *handleIncomingConnection( void *arg ) {
 	if( !pThreadList )
 		pthread_exit( 0 );
 
+	// Open memory device
+	pThreadList->memfd = openMemDev();
+	if( pThreadList->memfd < 0 )
+		goto ErrExit;
+
 	// Main thread loop
 	while( 1 ) {
 
@@ -56,6 +62,7 @@ void *handleIncomingConnection( void *arg ) {
 		// Handle this packet
 		if( !handleRequestPacket(
 				pThreadList->cfd,
+				pThreadList->memfd,
 				(fdkCommPkt_t *)pThreadList->packet,
 				pThreadList->rwByte ) ) {
 
@@ -69,6 +76,11 @@ void *handleIncomingConnection( void *arg ) {
 		else
 			break;
 	}
+
+	// Close memory device
+	closeMemDev( pThreadList->memfd );
+
+ErrExit:
 
 	// Close this connection
 	deinitializeSocket( pThreadList->cfd );
@@ -168,8 +180,8 @@ s32 main( s32 argc, s8 **argv ) {
         close( 1 );
         close( 2 );
     }
-    
-    
+
+
     // Open a socket
     if( initializeSocket( &sfd, NULL, FDK_DEF_PORT ) ) {
         

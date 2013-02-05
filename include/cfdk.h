@@ -392,6 +392,7 @@ s32 readPci( fdkUiProperty_t *pFdkUiProperty );
 s32 writePciByEditing( fdkUiProperty_t *pFdkUiProperty );
 u32 calculatePciAddress( u16 bus, u8 dev, u8 func );
 s32 getPciVenDevTexts( u16 venid, u16 devid, s8 *ventxt, s8 *devtxt, s8 *pciids );
+u32 fdkPciDetectDevice( fdkPciDev_t *pFdkPciDev );
 
 void printPciListBasePanel( fdkUiProperty_t *pFdkUiProperty );
 void printPciListUpdatePanel( fdkUiProperty_t *pFdkUiProperty );

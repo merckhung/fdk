@@ -56,13 +56,13 @@ LDFLAGS_MEMVR		:=	$(LDFLAGS)
 all: $(MODULES)
 
 fdkd: $(OBJS_FDKD)
-	@$(CC) $(CFLAGS_FDKD) $(LDFLAGS_FDKD) -o $@ $(OBJS_FDKD)
+	@$(CC) $(CFLAGS_FDKD) -o $@ $(OBJS_FDKD) $(LDFLAGS_FDKD)
 
 cfdk: $(OBJS_CFDK)
-	@$(CC) $(CFLAGS_CFDK) $(LDFLAGS_CFDK) -o $@ $(OBJS_CFDK)
+	@$(CC) $(CFLAGS_CFDK) -o $@ $(OBJS_CFDK) $(LDFLAGS_CFDK)
 
 memvr: $(OBJS_MEMVR)
-	@$(CC) $(CFLAGS_MEMVR) $(LDFLAGS_MEMVR) -o $@ $(OBJS_MEMVR)
+	@$(CC) $(CFLAGS_MEMVR) -o $@ $(OBJS_MEMVR) $(LDFLAGS_MEMVR)
 
 %.o: %.c
 	@$(CC) $(CFLAGS) -c -o $@ $<

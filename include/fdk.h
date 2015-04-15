@@ -30,4 +30,3 @@
 #define CFDK_PROGRAM_NAME		"Firmware Debug Kit"
 #define MEMVR_PROGRAM_NAME		"Text Mode Memory Viewer"
 
-

@@ -127,11 +127,9 @@
 #define FDK_MAXADDR_IO				0xFFFFULL
 #define FDK_MAXADDR_CMOS			0xFFULL
 
-
 #define DECLARE_WINDOW( NAME ) \
 	PANEL	*panel##NAME; \
 	WINDOW	*NAME;
-
 
 #define printWindow( RESRC, NAME, LINE, COLUMN, X, Y, COLORPAIR, FORMAT, ARGS... ) {\
     RESRC.NAME = newwin( LINE, COLUMN, X, Y );\
@@ -141,7 +139,6 @@
     wprintw( RESRC.NAME, FORMAT, ##ARGS );\
     wattrset( RESRC.NAME, A_NORMAL );\
 }
-
 
 #define printWindowAt( RESRC, NAME, LINE, COLUMN, X, Y, COLORPAIR, FORMAT, ARGS... ) {\
     if( !RESRC.NAME ) {\
@@ -153,7 +150,6 @@
     mvwprintw( RESRC.NAME, 0, 0, FORMAT, ##ARGS );\
     wattrset( RESRC.NAME, A_NORMAL );\
 }
-
 
 #define printWindowMove( RESRC, NAME, LINE, COLUMN, X, Y, COLORPAIR, FORMAT, ARGS... ) {\
     if( RESRC.panel##NAME ) {\
@@ -172,7 +168,6 @@
     wattrset( RESRC.NAME, A_NORMAL );\
 }
 
-
 #define destroyWindow( RESRC, NAME ) {\
     if( RESRC.panel##NAME ) {\
         del_panel( RESRC.panel##NAME );\
@@ -184,247 +179,220 @@
     }\
 }
 
-
 typedef enum {
 
-	KBPRS_ESC = 0x1B,
-	KBPRS_UP = 0x103,
-	KBPRS_DOWN = 0x102,
-	KBPRS_LEFT = 0x104,
-	KBPRS_RIGHT = 0x105,
-	KBPRS_PGUP = 0x153,
-	KBPRS_PGDN = 0x152,
+  KBPRS_ESC = 0x1B,
+  KBPRS_UP = 0x103,
+  KBPRS_DOWN = 0x102,
+  KBPRS_LEFT = 0x104,
+  KBPRS_RIGHT = 0x105,
+  KBPRS_PGUP = 0x153,
+  KBPRS_PGDN = 0x152,
 
-	KBPRS_F1 = 0x109,
-	KBPRS_F2 = 0x10A,
-	KBPRS_F3 = 0x10B,
-	KBPRS_F4 = 0x10C,
-	KBPRS_F5 = 0x10D,
-	KBPRS_F6 = 0x10E,
-	KBPRS_F7 = 0x10F,
-	KBPRS_F8 = 0x110,
-	KBPRS_F9 = 0x111,
-	KBPRS_F10 = 0x112,
-	KBPRS_F11 = 0x113,
-	KBPRS_F12 = 0x114,
+  KBPRS_F1 = 0x109,
+  KBPRS_F2 = 0x10A,
+  KBPRS_F3 = 0x10B,
+  KBPRS_F4 = 0x10C,
+  KBPRS_F5 = 0x10D,
+  KBPRS_F6 = 0x10E,
+  KBPRS_F7 = 0x10F,
+  KBPRS_F8 = 0x110,
+  KBPRS_F9 = 0x111,
+  KBPRS_F10 = 0x112,
+  KBPRS_F11 = 0x113,
+  KBPRS_F12 = 0x114,
 
-	KBPRS_SPACE = 0x20,
-	KBPRS_ENTER = 0x0A,
+  KBPRS_SPACE = 0x20,
+  KBPRS_ENTER = 0x0A,
 
 } fdkKeyPress_t;
 
-
 typedef enum {
 
-	KHF_INIT,
-	KHF_MEM,
-	KHF_IO,
-	KHF_PCI,
-	KHF_PCIL,
-	KHF_IDE,
-	KHF_CMOS,
+  KHF_INIT, KHF_MEM, KHF_IO, KHF_PCI, KHF_PCIL, KHF_IDE, KHF_CMOS,
 
 } fdkHwFunc_t;
 
-
 typedef enum {
 
-    WHITE_RED = 1,
-    WHITE_BLUE,
-	WHITE_YELLOW,
-	WHITE_BLACK,
+  WHITE_RED = 1, WHITE_BLUE, WHITE_YELLOW, WHITE_BLACK,
 
-    BLACK_WHITE,
-	BLACK_GREEN,
-	BLACK_YELLOW,
-	BLACK_BLUE,
-	BLACK_CYAN,
+  BLACK_WHITE, BLACK_GREEN, BLACK_YELLOW, BLACK_BLUE, BLACK_CYAN,
 
-    CYAN_BLUE,
-	CYAN_WHITE,
+  CYAN_BLUE, CYAN_WHITE,
 
-    YELLOW_BLUE,
-    YELLOW_RED,
-    YELLOW_BLACK,
-	YELLOW_WHITE,
+  YELLOW_BLUE, YELLOW_RED, YELLOW_BLACK, YELLOW_WHITE,
 
-	RED_WHITE,
-	RED_BLUE,
+  RED_WHITE, RED_BLUE,
 
-	MAGENTA_BLUE,
+  MAGENTA_BLUE,
 
-	GREEN_BLUE,
-	GREEN_WHITE,
+  GREEN_BLUE, GREEN_WHITE,
 
 } fdkColorPairs_t;
 
-
 typedef struct {
 
-	s8					venTxt[ FDK_MAX_PCINAME ];
-	s8					devTxt[ FDK_MAX_PCINAME ];
+  s8 venTxt[ FDK_MAX_PCINAME];
+  s8 devTxt[ FDK_MAX_PCINAME];
 
 } fdkPciIds_t;
 
-
 typedef struct PACKED {
 
-	u16					vendorId;
-	u16					deviceId;
-	u16					command;
-	u16					status;
-	u8					revisionId;
-	u8					classCode1;
-	u16					classCode2;
-	u8					cacheLine;
-	u8					latencyTimer;
-	u8					headerType;
-	u8					bist;
+  u16 vendorId;
+  u16 deviceId;
+  u16 command;
+  u16 status;
+  u8 revisionId;
+  u8 classCode1;
+  u16 classCode2;
+  u8 cacheLine;
+  u8 latencyTimer;
+  u8 headerType;
+  u8 bist;
 
-	u32					baseAddrReg0;
-	u32					baseAddrReg1;
-	u32					baseAddrReg2;
-	u32					baseAddrReg3;
-	u32					baseAddrReg4;
-	u32					baseAddrReg5;
-	
-	u32					cardbusCisPointer;
-	u16					subSysVendorId;
-	u16					subSysId;
-	u32					expRomBaseAddr;
-	u8					capPointer;
-	u8					reserved1;
-	u16					reserved2;
-	u32					reserved3;
-	u8					intLine;
-	u8					intPin;
-	u8					minGnt;
-	u8					maxLatency;
+  u32 baseAddrReg0;
+  u32 baseAddrReg1;
+  u32 baseAddrReg2;
+  u32 baseAddrReg3;
+  u32 baseAddrReg4;
+  u32 baseAddrReg5;
+
+  u32 cardbusCisPointer;
+  u16 subSysVendorId;
+  u16 subSysId;
+  u32 expRomBaseAddr;
+  u8 capPointer;
+  u8 reserved1;
+  u16 reserved2;
+  u32 reserved3;
+  u8 intLine;
+  u8 intPin;
+  u8 minGnt;
+  u8 maxLatency;
 
 } fdkPciConfig_t;
 
-
 typedef struct {
 
-	DECLARE_WINDOW( background );
-	DECLARE_WINDOW( logo );
-	DECLARE_WINDOW( copyright );
-	DECLARE_WINDOW( status );
-	DECLARE_WINDOW( time );
-	DECLARE_WINDOW( help );
+  DECLARE_WINDOW( background )
+  ;DECLARE_WINDOW( logo )
+  ;DECLARE_WINDOW( copyright )
+  ;DECLARE_WINDOW( status )
+  ;DECLARE_WINDOW( time )
+  ;DECLARE_WINDOW( help )
+  ;
 
-	u32					lastSecond;
-	s8					*statusStr;
-	s32					strIdx;
-	u8					toggleHelp;
+  u32 lastSecond;
+  s8 *statusStr;
+  s32 strIdx;
+  u8 toggleHelp;
 
 } fdkBasePanel_t;
 
-
 typedef struct {
 
-	DECLARE_WINDOW( top );
-	DECLARE_WINDOW( offset );
-	DECLARE_WINDOW( left );
-	DECLARE_WINDOW( rtop );
-	DECLARE_WINDOW( value );
-	DECLARE_WINDOW( ascii );
-	DECLARE_WINDOW( info );
-	DECLARE_WINDOW( highlight );
-	DECLARE_WINDOW( bits );
-	DECLARE_WINDOW( baseaddr );
-	DECLARE_WINDOW( hlascii );
-	DECLARE_WINDOW( ftitle );
-	DECLARE_WINDOW( stitle );
+  DECLARE_WINDOW( top )
+  ;DECLARE_WINDOW( offset )
+  ;DECLARE_WINDOW( left )
+  ;DECLARE_WINDOW( rtop )
+  ;DECLARE_WINDOW( value )
+  ;DECLARE_WINDOW( ascii )
+  ;DECLARE_WINDOW( info )
+  ;DECLARE_WINDOW( highlight )
+  ;DECLARE_WINDOW( bits )
+  ;DECLARE_WINDOW( baseaddr )
+  ;DECLARE_WINDOW( hlascii )
+  ;DECLARE_WINDOW( ftitle )
+  ;DECLARE_WINDOW( stitle )
+  ;
 
-	u64					byteBase;
-	s32					byteOffset;
-	s8					*infoStr;
-	u8					toggleBits;
-	u8					toggleEditing;
-	u8					editingBuf;
+  u64 byteBase;
+  s32 byteOffset;
+  s8 *infoStr;
+  u8 toggleBits;
+  u8 toggleEditing;
+  u8 editingBuf;
 
 } fdkDumpPanel_t;
 
-
 typedef struct {
 
-	DECLARE_WINDOW( title );
-	DECLARE_WINDOW( content );
-	DECLARE_WINDOW( highlight );
+  DECLARE_WINDOW( title )
+  ;DECLARE_WINDOW( content )
+  ;DECLARE_WINDOW( highlight )
+  ;
 
-	s32					hlIndex;
-	s32					pageOffset;
+  s32 hlIndex;
+  s32 pageOffset;
 
 } fdkPciListPanel_t;
 
-
 typedef struct {
 
-	// General
-	s32					fd;
-	s32					inputBuf;
-	fdkHwFunc_t			fdkHwFunc;
-	fdkHwFunc_t			fdkPreviousHwFunc;
+  // General
+  s32 fd;
+  s32 inputBuf;
+  fdkHwFunc_t fdkHwFunc;
+  fdkHwFunc_t fdkPreviousHwFunc;
 
-	// Packet
-	u8					pktBuf[ FDK_MAXSZ_PKT ];
-	fdkCommPkt_t		*pFdkCommPkt;
+  // Packet
+  u8 pktBuf[FDK_MAXSZ_PKT];
+  fdkCommPkt_t *pFdkCommPkt;
 
-	// Base panel
-	fdkBasePanel_t		fdkBasePanel;
-	fdkDumpPanel_t		fdkDumpPanel;
-	fdkPciListPanel_t	fdkPciListPanel;
+  // Base panel
+  fdkBasePanel_t fdkBasePanel;
+  fdkDumpPanel_t fdkDumpPanel;
+  fdkPciListPanel_t fdkPciListPanel;
 
-	// PCI list
-	fdkPciDev_t			*pFdkPciDev;
-	fdkPciIds_t			*pFdkPciIds;
-	u32					numOfPciDevice;
-	s8					pciIdsPath[ FDK_MAX_PATH ];
+  // PCI list
+  fdkPciDev_t *pFdkPciDev;
+  fdkPciIds_t *pFdkPciIds;
+  u32 numOfPciDevice;
+  s8 pciIdsPath[FDK_MAX_PATH];
 
-	// E820 list
-	fdkE820record_t		*pFdkE820record;
-	u32					numOfE820Record;
+  // E820 list
+  fdkE820record_t *pFdkE820record;
+  u32 numOfE820Record;
 
 } fdkUiProperty_t;
 
-
 // Prototypes
-s32 connectToFdkServer( fdkUiProperty_t *pFdkUiProperty );
-void disconnectFromFdkServer( fdkUiProperty_t *pFdkUiProperty );
-s32 readPciList( fdkUiProperty_t *pFdkUiProperty );
-fdkPciDev_t *getPciDevice( fdkUiProperty_t *pFdkUiProperty, s32 num );
-s32 readE820List( fdkUiProperty_t *pFdkUiProperty );
-s32 readMemory( fdkUiProperty_t *pFdkUiProperty );
-s32 writeMemoryByEditing( fdkUiProperty_t *pFdkUiProperty );
-s32 readIo( fdkUiProperty_t *pFdkUiProperty );
-s32 writeIoByEditing( fdkUiProperty_t *pFdkUiProperty );
-s32 readIde( fdkUiProperty_t *pFdkUiProperty );
-s32 writeIdeByEditing( fdkUiProperty_t *pFdkUiProperty );
-s32 readCmos( fdkUiProperty_t *pFdkUiProperty );
-s32 writeCmosByEditing( fdkUiProperty_t *pFdkUiProperty );
-s32 readPci( fdkUiProperty_t *pFdkUiProperty );
-s32 writePciByEditing( fdkUiProperty_t *pFdkUiProperty );
-u32 calculatePciAddress( u16 bus, u8 dev, u8 func );
-s32 getPciVenDevTexts( u16 venid, u16 devid, s8 *ventxt, s8 *devtxt, s8 *pciids );
-u32 fdkPciDetectDevice( fdkPciDev_t *pFdkPciDev );
+s32 connectToFdkServer(fdkUiProperty_t *pFdkUiProperty);
+void disconnectFromFdkServer(fdkUiProperty_t *pFdkUiProperty);
+s32 readPciList(fdkUiProperty_t *pFdkUiProperty);
+fdkPciDev_t *getPciDevice(fdkUiProperty_t *pFdkUiProperty, s32 num);
+s32 readE820List(fdkUiProperty_t *pFdkUiProperty);
+s32 readMemory(fdkUiProperty_t *pFdkUiProperty);
+s32 writeMemoryByEditing(fdkUiProperty_t *pFdkUiProperty);
+s32 readIo(fdkUiProperty_t *pFdkUiProperty);
+s32 writeIoByEditing(fdkUiProperty_t *pFdkUiProperty);
+s32 readIde(fdkUiProperty_t *pFdkUiProperty);
+s32 writeIdeByEditing(fdkUiProperty_t *pFdkUiProperty);
+s32 readCmos(fdkUiProperty_t *pFdkUiProperty);
+s32 writeCmosByEditing(fdkUiProperty_t *pFdkUiProperty);
+s32 readPci(fdkUiProperty_t *pFdkUiProperty);
+s32 writePciByEditing(fdkUiProperty_t *pFdkUiProperty);
+u32 calculatePciAddress(u16 bus, u8 dev, u8 func);
+s32 getPciVenDevTexts(u16 venid, u16 devid, s8 *ventxt, s8 *devtxt, s8 *pciids);
+u32 fdkPciDetectDevice(fdkPciDev_t *pFdkPciDev);
 
-void printPciListBasePanel( fdkUiProperty_t *pFdkUiProperty );
-void printPciListUpdatePanel( fdkUiProperty_t *pFdkUiProperty );
-void clearPciListBasePanel( fdkUiProperty_t *pFdkUiProperty );
-void clearPciListUpdatePanel( fdkUiProperty_t *pFdkUiProperty );
-s32 handleKeyPressForPciListPanel( fdkUiProperty_t *pFdkUiProperty );
+void printPciListBasePanel(fdkUiProperty_t *pFdkUiProperty);
+void printPciListUpdatePanel(fdkUiProperty_t *pFdkUiProperty);
+void clearPciListBasePanel(fdkUiProperty_t *pFdkUiProperty);
+void clearPciListUpdatePanel(fdkUiProperty_t *pFdkUiProperty);
+s32 handleKeyPressForPciListPanel(fdkUiProperty_t *pFdkUiProperty);
 
-void printDumpBasePanel( fdkUiProperty_t *pFdkUiProperty );
-void printDumpUpdatePanel( fdkUiProperty_t *pFdkUiProperty );
-void clearDumpBasePanel( fdkUiProperty_t *pFdkUiProperty );
-void clearDumpUpdatePanel( fdkUiProperty_t *pFdkUiProperty );
-void handleKeyPressForDumpPanel( fdkUiProperty_t *pFdkUiProperty );
+void printDumpBasePanel(fdkUiProperty_t *pFdkUiProperty);
+void printDumpUpdatePanel(fdkUiProperty_t *pFdkUiProperty);
+void clearDumpBasePanel(fdkUiProperty_t *pFdkUiProperty);
+void clearDumpUpdatePanel(fdkUiProperty_t *pFdkUiProperty);
+void handleKeyPressForDumpPanel(fdkUiProperty_t *pFdkUiProperty);
 
-void printPciBasePanel( fdkUiProperty_t *pFdkUiProperty );
-void printPciUpdatePanel( fdkUiProperty_t *pFdkUiProperty );
-void clearPciBasePanel( fdkUiProperty_t *pFdkUiProperty );
-void clearPciUpdatePanel( fdkUiProperty_t *pFdkUiProperty );
-void handleKeyPressForPciPanel( fdkUiProperty_t *pFdkUiProperty );
-
+void printPciBasePanel(fdkUiProperty_t *pFdkUiProperty);
+void printPciUpdatePanel(fdkUiProperty_t *pFdkUiProperty);
+void clearPciBasePanel(fdkUiProperty_t *pFdkUiProperty);
+void clearPciUpdatePanel(fdkUiProperty_t *pFdkUiProperty);
+void handleKeyPressForPciPanel(fdkUiProperty_t *pFdkUiProperty);
 

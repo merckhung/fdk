@@ -30,154 +30,113 @@
 #include <packet.h>
 #include <fdk.h>
 
+static u8 pktBuf[FDK_MAXSZ_PKT];
 
-static u8 pktBuf[ FDK_MAXSZ_PKT ];
+s32 connectToFdkServer(s32 sfd) {
 
-
-s32 connectToFdkServer( s32 sfd ) {
-
-	// Connect to FDK server
-	return executeFunction( 
-			sfd,
-			FDK_REQ_CONNECT,
-			0,
-			0,
-			NULL,
-			pktBuf,
-			FDK_MAXSZ_PKT );
+  // Connect to FDK server
+  return executeFunction(sfd, FDK_REQ_CONNECT, 0, 0,
+  NULL, pktBuf,
+  FDK_MAXSZ_PKT);
 }
 
+void disconnectFromFdkServer(s32 sfd) {
 
-void disconnectFromFdkServer( s32 sfd ) {
-
-    // Disconnect to FDK server
-    executeFunction(
-            sfd,
-            FDK_REQ_DISCONNECT,
-            0,
-            0,
-            NULL,
-            pktBuf,
-            FDK_MAXSZ_PKT );
+  // Disconnect to FDK server
+  executeFunction(sfd, FDK_REQ_DISCONNECT, 0, 0,
+  NULL, pktBuf,
+  FDK_MAXSZ_PKT);
 }
 
+u32 memoryReadDWord(s32 sfd, u64 address) {
 
-u32 memoryReadDWord( s32 sfd, u64 address ) {
+  s32 ret;
+  fdkCommPkt_t *pFdkCommPkt = (fdkCommPkt_t *) pktBuf;
+  s8 *ptr = (s8 *) &pFdkCommPkt->fdkRspMemReadPkt.memContent;
 
-	s32 ret;
-	fdkCommPkt_t *pFdkCommPkt = (fdkCommPkt_t *)pktBuf;
-	s8 *ptr = (s8 *)&pFdkCommPkt->fdkRspMemReadPkt.memContent;
+  // Read memory
+  ret = executeFunction(sfd, FDK_REQ_MEM_READ, address, sizeof(u32),
+  NULL, pktBuf,
+  FDK_MAXSZ_PKT);
 
-    // Read memory
-    ret = executeFunction(
-            sfd,
-            FDK_REQ_MEM_READ,
-            address,
-            sizeof( u32 ),
-            NULL,
-            pktBuf,
-            FDK_MAXSZ_PKT );
+  if (ret)
+    return 0xFFFFFFFF;
 
-	if( ret )
-		return 0xFFFFFFFF;
-
-	return *((u32 *)ptr);
+  return *((u32 *) ptr);
 }
 
+s32 memoryWriteDWord(s32 sfd, u64 address, u32 value) {
 
-s32 memoryWriteDWord( s32 sfd, u64 address, u32 value ) {
+  s32 ret;
 
-    s32 ret;
+  // Read memory
+  ret = executeFunction(sfd, FDK_REQ_MEM_WRITE, address, sizeof(u32),
+      (u8 *) &value, pktBuf,
+      FDK_MAXSZ_PKT);
 
-    // Read memory
-    ret = executeFunction(
-            sfd,
-            FDK_REQ_MEM_WRITE,
-            address,
-            sizeof( u32 ),
-			(u8 *)&value,
-            pktBuf,
-            FDK_MAXSZ_PKT );
+  if (ret)
+    return -1;
 
-    if( ret )
-        return -1;
-
-	return 0;
+  return 0;
 }
 
+u8 memoryReadByte(s32 sfd, u64 address) {
 
-u8 memoryReadByte( s32 sfd, u64 address ) {
+  s32 ret;
+  fdkCommPkt_t *pFdkCommPkt = (fdkCommPkt_t *) pktBuf;
+  s8 *ptr = (s8 *) &pFdkCommPkt->fdkRspMemReadPkt.memContent;
 
-	s32 ret;
-	fdkCommPkt_t *pFdkCommPkt = (fdkCommPkt_t *)pktBuf;
-	s8 *ptr = (s8 *)&pFdkCommPkt->fdkRspMemReadPkt.memContent;
+  // Read memory
+  ret = executeFunction(sfd, FDK_REQ_MEM_READ, address, sizeof(u8),
+  NULL, pktBuf,
+  FDK_MAXSZ_PKT);
 
-    // Read memory
-    ret = executeFunction(
-            sfd,
-            FDK_REQ_MEM_READ,
-            address,
-            sizeof( u8 ),
-            NULL,
-            pktBuf,
-            FDK_MAXSZ_PKT );
+  if (ret)
+    return 0xFF;
 
-	if( ret )
-		return 0xFF;
-
-	return (u8)*ptr;
+  return (u8) *ptr;
 }
 
+s32 memoryWriteByte(s32 sfd, u64 address, u8 value) {
 
-s32 memoryWriteByte( s32 sfd, u64 address, u8 value ) {
+  s32 ret;
 
-    s32 ret;
+  // Read memory
+  ret = executeFunction(sfd, FDK_REQ_MEM_WRITE, address, sizeof(u8), &value,
+      pktBuf,
+      FDK_MAXSZ_PKT);
 
-    // Read memory
-    ret = executeFunction(
-            sfd,
-            FDK_REQ_MEM_WRITE,
-            address,
-            sizeof( u8 ),
-			&value,
-            pktBuf,
-            FDK_MAXSZ_PKT );
+  if (ret)
+    return -1;
 
-    if( ret )
-        return -1;
-
-	return 0;
+  return 0;
 }
 
+void memoryORDWord(s32 sfd, u32 address, u32 value) {
 
-void memoryORDWord( s32 sfd, u32 address, u32 value ) {
+  u32 tmp;
 
-    u32 tmp;
-
-    tmp = memoryReadDWord( sfd, address );
-    tmp |= value;
-    memoryWriteDWord( sfd, address, tmp );
+  tmp = memoryReadDWord(sfd, address);
+  tmp |= value;
+  memoryWriteDWord(sfd, address, tmp);
 }
 
+void memoryANDDWord(s32 sfd, u32 address, u32 value) {
 
-void memoryANDDWord( s32 sfd, u32 address, u32 value ) {
+  u32 tmp;
 
-    u32 tmp;
-
-    tmp = memoryReadDWord( sfd, address );
-    tmp &= value;
-    memoryWriteDWord( sfd, address, tmp );
+  tmp = memoryReadDWord(sfd, address);
+  tmp &= value;
+  memoryWriteDWord(sfd, address, tmp);
 }
 
+void memoryCOMANDDWord(s32 sfd, u32 address, u32 value) {
 
-void memoryCOMANDDWord( s32 sfd, u32 address, u32 value ) {
+  u32 tmp;
 
-    u32 tmp;
-
-    value = ~value;
-    tmp = memoryReadDWord( sfd, address );
-    tmp &= value;
-    memoryWriteDWord( sfd, address, tmp );
+  value = ~value;
+  tmp = memoryReadDWord(sfd, address);
+  tmp &= value;
+  memoryWriteDWord(sfd, address, tmp);
 }
- 
 

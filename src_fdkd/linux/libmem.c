@@ -24,227 +24,207 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
-#include <mtypes.h>
-#include <fdk.h>
-#include <libmem.h>
+#include "mtypes.h"
+#include "fdk.h"
+#include "libmem.h"
 
-
-inline s32 openMemDev( void ) {
-
-	return open( FDK_MEM_DEV, O_RDWR );
+int32_t openMemDev(void) {
+  return open(FDK_MEM_DEV, O_RDWR);
 }
 
-
-inline void closeMemDev( s32 fd ) {
-
-	close( fd );
+void closeMemDev(int32_t fd) {
+  close(fd);
 }
 
+volatile void *memMapping(int32_t fd, uint64_t addr, uint32_t len, uint64_t *alignOff, uint32_t *actLen) {
+  uint64_t alignAddr;
 
-volatile void *memMapping( s32 fd, u64 addr, u32 len, u64 *alignOff, u32 *actLen ) {
+  // Must align 4kb boundary
+  alignAddr = addr & 0xFFFFFFFFFFFFE000ULL;
+  *alignOff = addr - alignAddr;
 
-    u64 alignAddr;
+  // Calculate maping size
+  if (len < FDK_4K_PAGE)
+    len = FDK_4K_PAGE;
+  else if (len % FDK_4K_PAGE)
+    len = ((len + FDK_4K_PAGE) / FDK_4K_PAGE) * FDK_4K_PAGE;
 
-    // Must align 4kb boundary
-    alignAddr = addr & 0xFFFFFFFFFFFFE000ULL;
-    *alignOff = addr - alignAddr;
+  // Aligned size plus 4kb
+  len += FDK_4K_PAGE;
+  *actLen = len;
 
-    // Calculate maping size
-    if( len < FDK_4K_PAGE )
-        len = FDK_4K_PAGE;
-    else if( len % FDK_4K_PAGE )
-        len = ((len + FDK_4K_PAGE) / FDK_4K_PAGE) * FDK_4K_PAGE;
-
-    // Aligned size plus 4kb
-    len += FDK_4K_PAGE;
-    *actLen = len;
-
-    // Map Memory
-    return mmap( NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, alignAddr );
+  // Map Memory
+  return mmap( NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, alignAddr);
 }
 
-
-s32 memUnmapping( void *phyMem, u32 len ) {
-
-    return munmap( phyMem, len );
+int32_t memUnmapping(void *phyMem, uint32_t len) {
+  return munmap(phyMem, len);
 }
 
+uint8_t memReadByte(int32_t fd, uint64_t addr) {
+  volatile uint8_t *phyMem;
+  uint8_t val;
+  uint64_t alignOff;
+  uint32_t actLen;
 
-u8 memReadByte( s32 fd, u64 addr ) {
+  // Map memory
+  phyMem = (volatile uint8_t *) memMapping(fd, addr, FDK_4K_PAGE, &alignOff,
+      &actLen);
+  if (!phyMem)
+    return 0xFF;
 
-    volatile u8 *phyMem;
-	u8 val;
-    u64 alignOff;
-	u32 actLen;
+  // Write val
+  val = *(phyMem + alignOff);
 
-    // Map memory
-    phyMem = (volatile u8 *)memMapping( fd, addr, FDK_4K_PAGE, &alignOff, &actLen );
-    if( !phyMem )
-        return 0xFF;
+  // Unmap memory
+  memUnmapping((void *) phyMem, actLen);
 
-    // Write val
-    val = *(phyMem + alignOff);
-
-    // Unmap memory
-    memUnmapping( (void *)phyMem, actLen );
-
-    return val;
+  return val;
 }
 
+uint16_t memReadWord(int32_t fd, uint64_t addr) {
+  volatile uint16_t *phyMem;
+  uint16_t val;
+  uint64_t alignOff;
+  uint32_t actLen;
 
+  // Map memory
+  phyMem = (volatile uint16_t *) memMapping(fd, addr, FDK_4K_PAGE, &alignOff,
+      &actLen);
+  if (!phyMem)
+    return 0xFFFF;
 
-u16 memReadWord( s32 fd, u64 addr ) {
+  // Write val
+  val = *(phyMem + (alignOff / 2));
 
-    volatile u16 *phyMem;
-	u16 val;
-    u64 alignOff;
-	u32 actLen;
+  // Unmap memory
+  memUnmapping((void *) phyMem, actLen);
 
-    // Map memory
-    phyMem = (volatile u16 *)memMapping( fd, addr, FDK_4K_PAGE, &alignOff, &actLen );
-    if( !phyMem )
-        return 0xFFFF;
-
-    // Write val
-    val = *(phyMem + (alignOff / 2));
-
-    // Unmap memory
-    memUnmapping( (void *)phyMem, actLen );
-
-    return val;
+  return val;
 }
 
+uint32_t memReadDWord(int32_t fd, uint64_t addr) {
+  volatile uint32_t *phyMem;
+  uint64_t alignOff;
+  uint32_t actLen, val;
 
-u32 memReadDWord( s32 fd, u64 addr ) {
+  // Map memory
+  phyMem = (volatile uint32_t *) memMapping(fd, addr, FDK_4K_PAGE, &alignOff,
+      &actLen);
+  if (!phyMem)
+    return 0xFFFFFFFF;
 
-    volatile u32 *phyMem;
-	u64 alignOff;
-	u32 actLen, val;
+  // Write val
+  val = *(phyMem + (alignOff / 4));
 
-    // Map memory
-    phyMem = (volatile u32 *)memMapping( fd, addr, FDK_4K_PAGE, &alignOff, &actLen );
-    if( !phyMem )
-        return 0xFFFFFFFF;
+  // Unmap memory
+  memUnmapping((void *) phyMem, actLen);
 
-    // Write val
-    val = *(phyMem + (alignOff / 4));
-
-    // Unmap memory
-    memUnmapping( (void *)phyMem, actLen );
-
-    return val;
+  return val;
 }
 
+uint32_t memReadBuffer(int32_t fd, uint64_t addr, uint32_t len, uint8_t *buf) {
+  volatile uint8_t *phyMem;
+  uint64_t alignOff;
+  uint32_t actLen, i;
 
-u32 memReadBuffer( s32 fd, u64 addr, u32 len, u8 *buf ) {
+  // Map memory
+  phyMem = (volatile uint8_t *) memMapping(fd, addr, len, &alignOff, &actLen);
+  if (!phyMem)
+    return 0xFFFFFFFF;
 
-    volatile u8 *phyMem;
-    u64 alignOff;
-	u32 actLen, i;
+  // Write val
+  for (i = 0; i < len; i++)
+    *(buf + i) = *(phyMem + alignOff + i);
 
-    // Map memory
-    phyMem = (volatile u8 *)memMapping( fd, addr, len, &alignOff, &actLen );
-    if( !phyMem )
-        return 0xFFFFFFFF;
+  // Unmap memory
+  memUnmapping((void *) phyMem, actLen);
 
-    // Write val
-    for( i = 0 ; i < len ; i++ )
-        *(buf + i) = *(phyMem + alignOff + i);
-
-    // Unmap memory
-    memUnmapping( (void *)phyMem, actLen );
-
-	return 0;
+  return 0;
 }
 
+uint32_t memWriteBuffer(int32_t fd, uint64_t addr, uint32_t len, uint8_t *buf) {
+  volatile uint8_t *phyMem;
+  uint64_t alignOff;
+  uint32_t actLen, i;
 
-u32 memWriteBuffer( s32 fd, u64 addr, u32 len, u8 *buf ) {
+  // Map memory
+  phyMem = (volatile uint8_t *) memMapping(fd, addr, len, &alignOff, &actLen);
+  if (!phyMem)
+    return 0xFFFFFFFF;
 
-    volatile u8 *phyMem;
-    u64 alignOff;
-	u32 actLen, i;
+  // Write val
+  for (i = 0; i < len; i++)
+    *(phyMem + alignOff + i) = *(buf + i);
 
-    // Map memory
-    phyMem = (volatile u8 *)memMapping( fd, addr, len, &alignOff, &actLen );
-    if( !phyMem )
-        return 0xFFFFFFFF;
+  // Unmap memory
+  memUnmapping((void *) phyMem, actLen);
 
-    // Write val
-    for( i = 0 ; i < len ; i++ )
-		*(phyMem + alignOff + i) = *(buf + i);
-
-    // Unmap memory
-    memUnmapping( (void *)phyMem, actLen );
-
-	return 0;
+  return 0;
 }
 
+uint8_t memWriteByte(int32_t fd, uint64_t addr, uint8_t val) {
+  volatile uint8_t *phyMem;
+  uint64_t alignOff;
+  uint32_t actLen;
+  uint8_t tmp;
 
-u8 memWriteByte( s32 fd, u64 addr, u8 val ) {
+  // Map memory
+  phyMem = (volatile uint8_t *) memMapping(fd, addr, FDK_4K_PAGE, &alignOff,
+      &actLen);
+  if (!phyMem)
+    return 0xFF;
 
-    volatile u8 *phyMem;
-    u64 alignOff;
-	u32 actLen;
-	u8 tmp;
+  // Write val
+  *(phyMem + alignOff) = val;
+  tmp = *(phyMem + alignOff);
 
-    // Map memory
-    phyMem = (volatile u8 *)memMapping( fd, addr, FDK_4K_PAGE, &alignOff, &actLen );
-    if( !phyMem )
-        return 0xFF;
+  // Unmap memory
+  memUnmapping((void *) phyMem, actLen);
 
-    // Write val
-    *(phyMem + alignOff) = val;
-	tmp = *(phyMem + alignOff);
-
-    // Unmap memory
-    memUnmapping( (void *)phyMem, actLen );
-
-	return tmp;
+  return tmp;
 }
 
+uint16_t memWriteWord(int32_t fd, uint64_t addr, uint16_t val) {
+  volatile uint16_t *phyMem;
+  uint64_t alignOff;
+  uint32_t actLen;
+  uint16_t tmp;
 
-u16 memWriteWord( s32 fd, u64 addr, u16 val ) {
+  // Map memory
+  phyMem = (volatile uint16_t *) memMapping(fd, addr, FDK_4K_PAGE, &alignOff,
+      &actLen);
+  if (!phyMem)
+    return 0xFFFF;
 
-    volatile u16 *phyMem;
-    u64 alignOff;
-	u32 actLen;
-	u16 tmp;
+  // Write val
+  *(phyMem + (alignOff / 2)) = val;
+  tmp = *(phyMem + (alignOff / 2));
 
-    // Map memory
-    phyMem = (volatile u16 *)memMapping( fd, addr, FDK_4K_PAGE, &alignOff, &actLen );
-    if( !phyMem )
-        return 0xFFFF;
+  // Unmap memory
+  memUnmapping((void *) phyMem, actLen);
 
-    // Write val
-    *(phyMem + (alignOff / 2)) = val;
-	tmp = *(phyMem + (alignOff / 2));
-
-    // Unmap memory
-    memUnmapping( (void *)phyMem, actLen );
-
-	return tmp;
+  return tmp;
 }
 
+uint32_t memWriteDWord(int32_t fd, uint64_t addr, uint32_t val) {
+  volatile uint32_t *phyMem;
+  uint64_t alignOff;
+  uint32_t actLen, tmp;
 
-u32 memWriteDWord( s32 fd, u64 addr, u32 val ) {
+  // Map memory
+  phyMem = (volatile uint32_t *) memMapping(fd, addr, FDK_4K_PAGE, &alignOff,
+      &actLen);
+  if (!phyMem)
+    return 0xFFFFFFFF;
 
-    volatile u32 *phyMem;
-	u64 alignOff;
-	u32 actLen, tmp;
+  // Write val
+  *(phyMem + (alignOff / 4)) = val;
+  tmp = *(phyMem + (alignOff / 4));
 
-    // Map memory
-    phyMem = (volatile u32 *)memMapping( fd, addr, FDK_4K_PAGE, &alignOff, &actLen );
-    if( !phyMem )
-        return 0xFFFFFFFF;
+  // Unmap memory
+  memUnmapping((void *) phyMem, actLen);
 
-    // Write val
-    *(phyMem + (alignOff / 4)) = val;
-	tmp = *(phyMem + (alignOff / 4));
-
-    // Unmap memory
-    memUnmapping( (void *)phyMem, actLen );
-
-	return tmp;
+  return tmp;
 }
-
 

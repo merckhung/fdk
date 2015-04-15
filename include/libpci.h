@@ -36,13 +36,11 @@
 #define FDK_CMOS_ADDR			0x70
 #define FDK_CMOS_DATA			0x71
 
-
-u32 pciBaseAddress( u32 bus, u32 dev, u32 fun, u32 reg );
-s32 pciInitialize( void );
-u32 pciReadConfDWord( u32 addr );
-void pciWriteConfDWord( u32 addr, u32 value );
-u8 pciReadConfByte( u32 addr );
-void pciWriteConfByte( u32 addr, u8 value );
-s32 cmosInitialize( void );
-
+u32 pciBaseAddress(u32 bus, u32 dev, u32 fun, u32 reg);
+s32 pciInitialize(void);
+u32 pciReadConfDWord(u32 addr);
+void pciWriteConfDWord(u32 addr, u32 value);
+u8 pciReadConfByte(u32 addr);
+void pciWriteConfByte(u32 addr, u8 value);
+s32 cmosInitialize(void);
 

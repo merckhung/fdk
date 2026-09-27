@@ -2,7 +2,7 @@
  * FDK - Firmware Debug Kit
  * File: fdkd.c
  *
- * Copyright (C) 2006 - 2013 Merck Hung <merckhung@gmail.com>
+ * Copyright (C) 2006 - 2026 Merck Hung <merckhung@gmail.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -12,232 +12,198 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
+#include "fdkd.h"
+
+#include <errno.h>
+#include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
 #include <unistd.h>
-#include <signal.h>
-#include <pthread.h>
 
-#include <mtypes.h>
-#include <fdk.h>
-#include <libcomm.h>
-#include <libmem.h>
-#include <netsock.h>
-#include <packet.h>
-#include <fdkd.h>
+#include "libdisk.h"
+#include "libmem.h"
+#include "libpci.h"
+#include "netsock.h"
 
-static volatile u8 terminate = 0;
-static threadList_t *headThreadList = NULL;
-static pthread_mutex_t threadLock = PTHREAD_MUTEX_INITIALIZER;
+static volatile sig_atomic_t terminate = 0;
+static s8 diskPath[FDK_MAX_PATH];
 
 static void help(void) {
-
-  fprintf( stderr, "\n" FDK_COPYRIGHT_TEXT "\n\n");
-  fprintf( stderr, FDKD_PROGRAM_NAME ", Version " FDK_REVISION "\n");
-  fprintf( stderr, "Author: " FDK_AUTHOR_NAME "\n");
-  fprintf( stderr, "help: fdkd [-d | -h]\n\n");
-  fprintf( stderr, "\t-d\tDon't run as daemon.\n");
-  fprintf( stderr, "\t-h\tPrint help and exit\n\n");
+  fprintf(stderr, "\n" FDK_COPYRIGHT_TEXT "\n\n");
+  fprintf(stderr, FDKD_PROGRAM_NAME ", Version " FDK_REVISION "\n");
+  fprintf(stderr, "Author: " FDK_AUTHOR_NAME "\n");
+  fprintf(stderr,
+          "usage: fdkd [-d] [-l address] [-p port] [-b blockdev] [-h]\n\n");
+  fprintf(stderr, "\t-d\tStay in the foreground (don't run as a daemon)\n");
+  fprintf(stderr, "\t-l\tAddress to listen on, default is " FDK_DEF_LISTEN_ADDR
+                  " (use 0.0.0.0 or :: for remote clients)\n");
+  fprintf(stderr, "\t-p\tTCP port, default is %d\n", FDK_DEF_PORT);
+  fprintf(stderr,
+          "\t-b\tBlock device for disk access, default is the first disk "
+          "in /sys/block\n");
+  fprintf(stderr, "\t-h\tPrint help and exit\n\n");
 }
 
-void *handleIncomingConnection(void *arg) {
+// Reports which hardware access paths the running kernel allows.
+static void probeEnvironment(void) {
+  s8 buf[128] = "";
+  FILE *fp;
+  s32 fd;
 
-  threadList_t *pThreadList = (threadList_t *) arg;
-  s32 sts;
+  fd = openMemDev();
+  if (fd < 0) {
+    fprintf(stderr,
+            "Warning: " FDK_MEM_DEV
+            ": %s; memory access is disabled (CONFIG_DEVMEM, lockdown?)\n",
+            strerror(errno));
+  }
+  closeMemDev(fd);
 
-  // Sanity check
-  if (!pThreadList)
-    pthread_exit(0);
-
-  // Open memory device
-  pThreadList->memfd = openMemDev();
-  if (pThreadList->memfd < 0)
-    goto ErrExit;
-
-  // Main thread loop
-  while (1) {
-
-    // Read incoming data
-    receiveSocket(pThreadList->cfd, pThreadList->packet,
-    FDK_PKTSIZE, &pThreadList->rwByte);
-    if (pThreadList->rwByte <= 0)
-      break;
-
-    // Handle this packet
-    sts = handleRequestPacket(pThreadList->cfd, pThreadList->memfd,
-        (fdkCommPkt_t *) pThreadList->packet, pThreadList->rwByte);
-    if (!sts || sts == -2) {
-
-      // Response
-      transferSocket(pThreadList->cfd, pThreadList->packet,
-          ((fdkCommPkt_t *) pThreadList->packet)->fdkCommHdr.pktLen,
-          &pThreadList->rwByte);
-    } else
-      break;
+  if (access(PCI_SYSFS_DEVICES, R_OK)) {
+    fprintf(stderr, "Warning: " PCI_SYSFS_DEVICES
+                    " missing; using legacy CF8h/CFCh PCI access\n");
   }
 
-  // Close memory device
-  closeMemDev(pThreadList->memfd);
+  // Lockdown also blocks /dev/port, ioperm() and iopl().
+  fp = fopen("/sys/kernel/security/lockdown", "re");
+  if (fp) {
+    if (fgets(buf, sizeof(buf), fp) && !strstr(buf, "[none]")) {
+      fprintf(stderr, "Warning: kernel lockdown is active: %s", buf);
+    }
+    fclose(fp);
+  }
 
-  ErrExit:
-
-  // Close this connection
-  deinitializeSocket(pThreadList->cfd);
-
-  // Detach my context
-  pthread_mutex_lock(&threadLock);
-  removeLinklist((commonLinklist_t **) &headThreadList,
-      (commonLinklist_t *) pThreadList);
-  pthread_mutex_unlock(&threadLock);
-
-  // Free memory
-  free(pThreadList);
-
-  // Return
-  pthread_exit(0);
+  if (diskPath[0]) fprintf(stderr, "Disk requests use %s\n", diskPath);
 }
 
-void handleSignal(int no) {
+static void *handleIncomingConnection(void *arg) {
+  fdkdConnection_t *pConn = arg;
+  s32 rByte;
 
-  // Terminate the main program
+  // /dev/mem may be missing or locked down; keep serving other requests.
+  pConn->memfd = openMemDev();
+
+  for (;;) {
+    rByte = readPacket(pConn->cfd, pConn->packet, sizeof(pConn->packet));
+    if (rByte <= 0) break;
+
+    if (handleRequestPacket(pConn, (u32)rByte) == FDKD_REPLY_AND_CLOSE) {
+      writePacket(pConn->cfd, pConn->packet);
+      break;
+    }
+    if (writePacket(pConn->cfd, pConn->packet)) break;
+  }
+
+  closeMemDev(pConn->memfd);
+  deinitializeSocket(pConn->cfd);
+  free(pConn);
+  return NULL;
+}
+
+static void handleSignal(int no) {
+  (void)no;
   terminate = 1;
 }
 
-s32 main(s32 argc, s8 **argv) {
+static void installSignalHandlers(void) {
+  struct sigaction sa;
 
-  s8 c;
-  s32 daemon = 1, sfd, cfd, ret;
-  pid_t pid, sid;
-  uid_t uid, euid;
-  threadList_t *pThreadList;
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_handler = handleSignal;
+  sigemptyset(&sa.sa_mask);
+  // No SA_RESTART: accept() must return EINTR so the main loop can exit.
+  sigaction(SIGTERM, &sa, NULL);
+  sigaction(SIGINT, &sa, NULL);
+  sigaction(SIGHUP, &sa, NULL);
 
-  // Initialize
-  uid = getuid();
-  euid = geteuid();
-  if (uid != 0 || euid != 0) {
+  // A client that disconnects mid-reply must not kill the server.
+  signal(SIGPIPE, SIG_IGN);
+}
 
-    fprintf( stderr, "Must be run with ROOT privilege\n");
-    help();
-    return -1;
-  }
+int main(int argc, char **argv) {
+  const s8 *listenAddr = FDK_DEF_LISTEN_ADDR;
+  bool runAsDaemon = true;
+  s32 port = FDK_DEF_PORT, sfd, cfd, c;
+  pthread_attr_t attr;
+  pthread_t pth;
 
-  // Handle arguments
-  while ((c = getopt(argc, argv, ":dh")) != EOF) {
-
+  while ((c = getopt(argc, argv, "dl:p:b:h")) != -1) {
     switch (c) {
       case 'd':
-        daemon = 0;
+        runAsDaemon = false;
         break;
-
-      default:
+      case 'l':
+        listenAddr = optarg;
+        break;
+      case 'p':
+        port = atoi(optarg);
+        break;
+      case 'b':
+        snprintf(diskPath, sizeof(diskPath), "%s", optarg);
+        break;
       case 'h':
         help();
         return 0;
+      default:
+        help();
+        return 1;
     }
   }
 
-#if 0
-  // Signal register
-  signal( SIGKILL, handleSignal );
-  signal( SIGTERM, handleSignal );
-  signal( SIGHUP, handleSignal );
-  signal( SIGINT, handleSignal );
-#endif
-
-  // Run as daemon
-  if (daemon) {
-
-    // Fork a child process
-    pid = fork();
-    if (pid < 0) {
-
-      fprintf( stderr, "Cannot fork child process.\n");
-      exit(1);
-    }
-
-    // Terminate the parent process
-    if (pid > 0)
-      exit(0);
-    umask(0);
-
-    // Set SID
-    sid = setsid();
-    if (sid < 0)
-      exit(1);
-
-    // Change location to root
-    if (chdir("/") < 0)
-      exit(1);
-
-    // Close standard input, output, and error
-    close(0);
-    close(1);
-    close(2);
+  if (geteuid() != 0) {
+    fprintf(stderr, "Must be run with root privilege\n");
+    return 1;
   }
 
-  // Open a socket
-  if (initializeSocket(&sfd, NULL, FDK_DEF_PORT)) {
-
-    fprintf( stderr, "Cannot open socket\n");
-    return -1;
+  if (!diskPath[0] && diskFindDefault(diskPath, sizeof(diskPath))) {
+    fprintf(stderr, "Warning: no disk found, disk access is disabled\n");
   }
 
-  // Handle incoming connections
+  probeEnvironment();
+
+  if (initializeSocket(&sfd, listenAddr, port)) {
+    fprintf(stderr, "Cannot listen on %s port %d: %s\n", listenAddr, port,
+            strerror(errno));
+    return 1;
+  }
+
+  if (runAsDaemon && daemon(0, 0)) {
+    fprintf(stderr, "Cannot run as daemon: %s\n", strerror(errno));
+    return 1;
+  }
+
+  installSignalHandlers();
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
   while (!terminate) {
+    fdkdConnection_t *pConn;
 
-    // Accept new connection
-    if (acceptSocket(sfd, &cfd) != TRUE)
-      continue;
+    if (acceptSocket(sfd, &cfd) != TRUE) continue;
 
-    // Allocate a new thread context
-    pThreadList = malloc(sizeof(threadList_t));
-    if (!pThreadList) {
-
-      fprintf( stderr, "Out of memory\n");
+    pConn = calloc(1, sizeof(*pConn));
+    if (!pConn) {
       deinitializeSocket(cfd);
-      usleep(1000);
       continue;
     }
+    pConn->cfd = cfd;
+    pConn->memfd = -1;
+    pConn->diskPath = diskPath[0] ? diskPath : NULL;
 
-    // Attach the thread context
-    pthread_mutex_lock(&threadLock);
-    appendLinklist((commonLinklist_t **) &headThreadList,
-        (commonLinklist_t *) pThreadList);
-    pthread_mutex_unlock(&threadLock);
-
-    // Fill in the data
-    pThreadList->cfd = cfd;
-
-    // Create a thread
-    ret = pthread_create(&pThreadList->pth,
-    NULL, handleIncomingConnection, (void *) pThreadList);
-    if (ret) {
-
-      fprintf( stderr, "Failed to create a thread\n");
-      break;
+    if (pthread_create(&pth, &attr, handleIncomingConnection, pConn)) {
+      fprintf(stderr, "Failed to create a thread\n");
+      deinitializeSocket(cfd);
+      free(pConn);
     }
-
-    // Delay for a while
-    usleep(100);
   }
 
-  // Cancel all running threads, but don't free, the OS will do
-  for (pThreadList = headThreadList; pThreadList;
-      pThreadList = pThreadList->next)
-    pthread_cancel(pThreadList->pth);
-
-  // Close the socket
+  // Worker threads are torn down with the process.
+  pthread_attr_destroy(&attr);
   deinitializeSocket(sfd);
-
-  // Return
   return 0;
 }
-

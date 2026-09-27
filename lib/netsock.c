@@ -2,7 +2,7 @@
  * FDK - Firmware Debug Kit
  * File: netsock.c
  *
- * Copyright (C) 2006 - 2013 Merck Hung <merckhung@gmail.com>
+ * Copyright (C) 2006 - 2026 Merck Hung <merckhung@gmail.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -12,154 +12,81 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
+#include "netsock.h"
+
+#include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
 #include <unistd.h>
 
-#include <mtypes.h>
-#include <fdk.h>
-#include <netsock.h>
-#include <libcomm.h>
+#include "fdk.h"
 
-s32 initializeSocket(s32 *fd, s8 *addr, s32 port) {
+#define FDK_LISTEN_BACKLOG 5
 
-  s32 sts = 0;
-  struct sockaddr_in servaddr;
+typedef s32 (*socketAction_t)(s32 fd, const struct sockaddr *sa, socklen_t len);
 
-  // Argument check
-  if (!addr)
-    addr = "0.0.0.0";  // Any
-  else if (isIPv4Format(addr))
-    return -1;
+static s32 listenAction(s32 fd, const struct sockaddr *sa, socklen_t len) {
+  const s32 on = 1;
 
-  // Open a socket
-  *fd = socket( PF_INET, SOCK_STREAM, 0);
-  if (*fd < 0)
-    return -1;
-
-  // Default values of address & port
-  if (port <= 0)
-    port = FDK_DEF_PORT;
-
-  // Set address
-  memset(&servaddr, 0, sizeof(struct sockaddr_in));
-  servaddr.sin_family = PF_INET;
-  servaddr.sin_port = htons(port);
-  if (inet_aton(addr, &servaddr.sin_addr) < 0) {
-
-    sts = -1;
-    goto ErrExit;
-  }
-
-  // Bind network port
-  if (bind(*fd, (struct sockaddr *) &servaddr, sizeof(struct sockaddr_in))
-      < 0) {
-
-    sts = -1;
-    goto ErrExit;
-  }
-
-  // Listen network port
-  if (listen(*fd, 5) < 0) {
-
-    sts = -1;
-    goto ErrExit;
-  }
-
-  // Return socket fd
-  return sts;
-
-  ErrExit: close(*fd);
-  return sts;
+  setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+  if (bind(fd, sa, len) < 0) return -1;
+  return listen(fd, FDK_LISTEN_BACKLOG);
 }
 
-s32 connectSocket(s32 *fd, s8 *addr, s32 port) {
+static s32 connectAction(s32 fd, const struct sockaddr *sa, socklen_t len) {
+  const s32 on = 1;
 
-  s32 sts = 0;
-  struct sockaddr_in servaddr;
+  // Requests are small and strictly request/response.
+  setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on));
+  return connect(fd, sa, len);
+}
 
-  // Argument check
-  if (!addr)
-    addr = "0.0.0.0";  // Any
-  else if (isIPv4Format(addr))
-    return -1;
+// Resolves |addr|:|port| and runs |action| on a socket for each candidate
+// address until one succeeds.
+static s32 openSocket(s32 *fd, const s8 *addr, s32 port, bool passive,
+                      socketAction_t action) {
+  struct addrinfo hints, *res, *ai;
+  s8 service[16];
 
-  // Open a socket
-  *fd = socket( PF_INET, SOCK_STREAM, 0);
-  if (*fd < 0)
-    return -1;
+  if (port <= 0) port = FDK_DEF_PORT;
+  snprintf(service, sizeof(service), "%d", port);
 
-  // Default values of address & port
-  if (port <= 0)
-    port = FDK_DEF_PORT;
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = passive ? AI_PASSIVE : 0;
+  if (getaddrinfo(addr, service, &hints, &res)) return -1;
 
-  // Set address
-  memset(&servaddr, 0, sizeof(struct sockaddr_in));
-  servaddr.sin_family = PF_INET;
-  servaddr.sin_port = htons(port);
-  if (inet_aton(addr, &servaddr.sin_addr) < 0) {
-
-    sts = -1;
-    goto ErrExit;
+  for (ai = res; ai; ai = ai->ai_next) {
+    *fd =
+        socket(ai->ai_family, ai->ai_socktype | SOCK_CLOEXEC, ai->ai_protocol);
+    if (*fd < 0) continue;
+    if (!action(*fd, ai->ai_addr, ai->ai_addrlen)) break;
+    close(*fd);
   }
+  freeaddrinfo(res);
 
-  // Connect to network port
-  if (connect(*fd, (struct sockaddr *) &servaddr, sizeof(struct sockaddr_in))
-      < 0) {
+  return ai ? 0 : -1;
+}
 
-    sts = -1;
-    goto ErrExit;
-  }
+s32 initializeSocket(s32 *fd, const s8 *addr, s32 port) {
+  return openSocket(fd, addr, port, true, listenAction);
+}
 
-  // Return socket fd
-  return sts;
-
-  ErrExit: close(*fd);
-  return sts;
+s32 connectSocket(s32 *fd, const s8 *addr, s32 port) {
+  return openSocket(fd, addr, port, false, connectAction);
 }
 
 void deinitializeSocket(s32 fd) {
-
-  close(fd);
+  if (fd >= 0) close(fd);
 }
 
 s32 acceptSocket(s32 fd, s32 *apsd) {
-
-  struct sockaddr_in cliaddr;
-  socklen_t clilen;
-
-  // Accept new connection
-  clilen = sizeof(struct sockaddr_in);
-  *apsd = accept(fd, (struct sockaddr *) &cliaddr, &clilen);
-  if (*apsd < 0)
-    return FALSE;
-
-  return TRUE;
+  *apsd = accept4(fd, NULL, NULL, SOCK_CLOEXEC);
+  return *apsd < 0 ? FALSE : TRUE;
 }
-
-s32 transferSocket(s32 fd, const void *pktBuf, const u32 length, u32 *wByte) {
-
-  *wByte = send(fd, pktBuf, length, 0);
-  if (*wByte != length)
-    return FALSE;
-
-  return TRUE;
-}
-
-s32 receiveSocket(s32 fd, void *pktBuf, const u32 length, u32 *rByte) {
-
-  *rByte = recv(fd, pktBuf, length, 0);
-  if (*rByte != length)
-    return FALSE;
-
-  return TRUE;
-}
-

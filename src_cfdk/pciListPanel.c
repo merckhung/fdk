@@ -2,7 +2,7 @@
  * FDK - Firmware Debug Kit
  * File: pciListPanel.c
  *
- * Copyright (C) 2006 - 2013 Merck Hung <merckhung@gmail.com>
+ * Copyright (C) 2006 - 2026 Merck Hung <merckhung@gmail.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -12,163 +12,119 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <time.h>
-#include <termios.h>
-
-#include <ncurses.h>
-#include <panel.h>
-
-#include <mtypes.h>
-#include <libcomm.h>
-#include <fdk.h>
-#include <packet.h>
-#include <cfdk.h>
+#include "cfdk.h"
 
 void printPciListBasePanel(fdkUiProperty_t *pFdkUiProperty) {
-
-  // Title
   printWindowAt(pFdkUiProperty->fdkPciListPanel, title, FDK_PCIL_TITLE_LINE,
-      FDK_PCIL_TITLE_COLUMN, FDK_PCIL_TITLE_X_POS, FDK_PCIL_TITLE_Y_POS,
-      YELLOW_BLACK, FDK_PCIL_TITLE);
+                FDK_PCIL_TITLE_COLUMN, FDK_PCIL_TITLE_X_POS,
+                FDK_PCIL_TITLE_Y_POS, YELLOW_BLACK, FDK_PCIL_TITLE);
+}
+
+// Formats one line of the device listing.
+static s32 formatPciLine(const fdkUiProperty_t *pFdkUiProperty, s32 i, s8 *buf,
+                         size_t len) {
+  const fdkPciIds_t *pIds = &pFdkUiProperty->pFdkPciIds[i];
+  const fdkPciDev_t *pDev = &pFdkUiProperty->pFdkPciDev[i];
+
+  return snprintf(buf, len, FDK_PCIL_LINE_FMT, pIds->venTxt, pIds->devTxt,
+                  pDev->vendorId, pDev->deviceId, pDev->bus, pDev->dev,
+                  pDev->fun);
 }
 
 void printPciListUpdatePanel(fdkUiProperty_t *pFdkUiProperty) {
+  fdkPciListPanel_t *pPanel = &pFdkUiProperty->fdkPciListPanel;
+  s8 buf[FDK_BUF_SIZE] = "", hlbuf[FDK_PCIL_CON_COLUMN + 1] = "";
+  s8 *p = buf;
+  s32 i, start, end;
 
-  s8 *p, buf[FDK_BUF_SIZE], hlbuf[FDK_PCIL_CON_COLUMN + 1];
-  s32 i;
-  s32 start, end;
-
-  // Range
-  start = pFdkUiProperty->fdkPciListPanel.pageOffset;
-  end = pFdkUiProperty->fdkPciListPanel.pageOffset + FDK_REC_PER_PAGE;
-  if (end > pFdkUiProperty->numOfPciDevice)
-    end = pFdkUiProperty->numOfPciDevice;
-
-  // Prepare data
-  p = buf;
-  for (i = start; i < end; i++) {
-
-    // Prepare for the list
-    p += snprintf(p, (FDK_BUF_SIZE - (p - buf)),
-    FDK_PCIL_LINE_FMT, (pFdkUiProperty->pFdkPciIds + i)->venTxt,
-        (pFdkUiProperty->pFdkPciIds + i)->devTxt,
-        (pFdkUiProperty->pFdkPciDev + i)->vendorId,
-        (pFdkUiProperty->pFdkPciDev + i)->deviceId,
-        (pFdkUiProperty->pFdkPciDev + i)->bus,
-        (pFdkUiProperty->pFdkPciDev + i)->dev,
-        (pFdkUiProperty->pFdkPciDev + i)->fun);
-
-    // Prepare for the highlight bar
-    if (i
-        == (pFdkUiProperty->fdkPciListPanel.hlIndex
-            + pFdkUiProperty->fdkPciListPanel.pageOffset))
-      snprintf(hlbuf,
-      FDK_PCIL_CON_COLUMN + 1,
-      FDK_PCIL_LINE_FMT, (pFdkUiProperty->pFdkPciIds + i)->venTxt,
-          (pFdkUiProperty->pFdkPciIds + i)->devTxt,
-          (pFdkUiProperty->pFdkPciDev + i)->vendorId,
-          (pFdkUiProperty->pFdkPciDev + i)->deviceId,
-          (pFdkUiProperty->pFdkPciDev + i)->bus,
-          (pFdkUiProperty->pFdkPciDev + i)->dev,
-          (pFdkUiProperty->pFdkPciDev + i)->fun);
+  if (!pFdkUiProperty->numOfPciDevice) {
+    printWindowAt(pFdkUiProperty->fdkPciListPanel, content, FDK_PCIL_CON_LINE,
+                  FDK_PCIL_CON_COLUMN, FDK_PCIL_CON_X_POS, FDK_PCIL_CON_Y_POS,
+                  WHITE_BLUE, "%s", "No PCI devices found.");
+    return;
   }
 
-  // Update the screen
-  printWindowAt(pFdkUiProperty->fdkPciListPanel, content, FDK_PCIL_CON_LINE,
-      FDK_PCIL_CON_COLUMN, FDK_PCIL_CON_X_POS, FDK_PCIL_CON_Y_POS, WHITE_BLUE,
-      "%s", buf);
+  start = pPanel->pageOffset;
+  end = pPanel->pageOffset + FDK_REC_PER_PAGE;
+  if (end > (s32)pFdkUiProperty->numOfPciDevice) {
+    end = (s32)pFdkUiProperty->numOfPciDevice;
+  }
 
-  // Highlight
+  for (i = start; i < end; i++) {
+    p += formatPciLine(pFdkUiProperty, i, p, sizeof(buf) - (size_t)(p - buf));
+    if (i == pPanel->hlIndex + pPanel->pageOffset) {
+      formatPciLine(pFdkUiProperty, i, hlbuf, sizeof(hlbuf));
+    }
+  }
+
+  printWindowAt(pFdkUiProperty->fdkPciListPanel, content, FDK_PCIL_CON_LINE,
+                FDK_PCIL_CON_COLUMN, FDK_PCIL_CON_X_POS, FDK_PCIL_CON_Y_POS,
+                WHITE_BLUE, "%s", buf);
+
   printWindowMove(pFdkUiProperty->fdkPciListPanel, highlight, FDK_STRING_NLINE,
-      FDK_PCIL_CON_COLUMN,
-      FDK_PCIL_CON_X_POS + pFdkUiProperty->fdkPciListPanel.hlIndex,
-      FDK_PCIL_CON_Y_POS, BLACK_CYAN, "%s", hlbuf);
+                  FDK_PCIL_CON_COLUMN, FDK_PCIL_CON_X_POS + pPanel->hlIndex,
+                  FDK_PCIL_CON_Y_POS, BLACK_CYAN, "%s", hlbuf);
 }
 
 void clearPciListBasePanel(fdkUiProperty_t *pFdkUiProperty) {
-
   destroyWindow(pFdkUiProperty->fdkPciListPanel, title);
 }
 
 void clearPciListUpdatePanel(fdkUiProperty_t *pFdkUiProperty) {
-
   destroyWindow(pFdkUiProperty->fdkPciListPanel, content);
   destroyWindow(pFdkUiProperty->fdkPciListPanel, highlight);
 }
 
 s32 handleKeyPressForPciListPanel(fdkUiProperty_t *pFdkUiProperty) {
+  fdkPciListPanel_t *pPanel = &pFdkUiProperty->fdkPciListPanel;
+  const s32 num = (s32)pFdkUiProperty->numOfPciDevice;
 
   switch (pFdkUiProperty->inputBuf) {
-
-    case KBPRS_UP:
-
-      if (pFdkUiProperty->fdkPciListPanel.hlIndex)
-        pFdkUiProperty->fdkPciListPanel.hlIndex--;
-      else if (pFdkUiProperty->fdkPciListPanel.pageOffset)
-        pFdkUiProperty->fdkPciListPanel.pageOffset--;
+    case KEY_UP:
+      if (pPanel->hlIndex) {
+        pPanel->hlIndex--;
+      } else if (pPanel->pageOffset) {
+        pPanel->pageOffset--;
+      }
       break;
 
-    case KBPRS_DOWN:
-
-      if (pFdkUiProperty->fdkPciListPanel.hlIndex < (FDK_REC_PER_PAGE - 1)
-          && (pFdkUiProperty->fdkPciListPanel.pageOffset
-              + pFdkUiProperty->fdkPciListPanel.hlIndex)
-              < (pFdkUiProperty->numOfPciDevice - 1))
-        pFdkUiProperty->fdkPciListPanel.hlIndex++;
-      else if ((pFdkUiProperty->fdkPciListPanel.pageOffset + FDK_REC_PER_PAGE)
-          < pFdkUiProperty->numOfPciDevice)
-        pFdkUiProperty->fdkPciListPanel.pageOffset++;
+    case KEY_DOWN:
+      if (pPanel->hlIndex < FDK_REC_PER_PAGE - 1 &&
+          pPanel->pageOffset + pPanel->hlIndex < num - 1) {
+        pPanel->hlIndex++;
+      } else if (pPanel->pageOffset + FDK_REC_PER_PAGE < num) {
+        pPanel->pageOffset++;
+      }
       break;
 
-    case KBPRS_PGUP:
-
-      if (pFdkUiProperty->numOfPciDevice < FDK_REC_PER_PAGE)
-        break;
-
-      if (pFdkUiProperty->fdkPciListPanel.pageOffset >= FDK_REC_PER_PAGE)
-        pFdkUiProperty->fdkPciListPanel.pageOffset -= FDK_REC_PER_PAGE;
-      else
-        pFdkUiProperty->fdkPciListPanel.pageOffset = 0;
-
-      pFdkUiProperty->fdkPciListPanel.hlIndex = 0;
+    case KEY_PPAGE:
+      if (num < FDK_REC_PER_PAGE) break;
+      if (pPanel->pageOffset >= FDK_REC_PER_PAGE) {
+        pPanel->pageOffset -= FDK_REC_PER_PAGE;
+      } else {
+        pPanel->pageOffset = 0;
+      }
+      pPanel->hlIndex = 0;
       break;
 
-    case KBPRS_PGDN:
-
-      if (pFdkUiProperty->numOfPciDevice < FDK_REC_PER_PAGE)
-        break;
-
-      if ((pFdkUiProperty->fdkPciListPanel.pageOffset + FDK_REC_PER_PAGE)
-          < pFdkUiProperty->numOfPciDevice) {
-
-        pFdkUiProperty->fdkPciListPanel.pageOffset += FDK_REC_PER_PAGE;
-        if ((pFdkUiProperty->numOfPciDevice
-            - pFdkUiProperty->fdkPciListPanel.pageOffset) < FDK_REC_PER_PAGE)
-          pFdkUiProperty->fdkPciListPanel.pageOffset =
-              pFdkUiProperty->numOfPciDevice - FDK_REC_PER_PAGE;
-      } else
-        pFdkUiProperty->fdkPciListPanel.pageOffset =
-            pFdkUiProperty->numOfPciDevice - FDK_REC_PER_PAGE;
-
-      pFdkUiProperty->fdkPciListPanel.hlIndex = FDK_REC_PER_PAGE - 1;
+    case KEY_NPAGE:
+      if (num < FDK_REC_PER_PAGE) break;
+      pPanel->pageOffset += FDK_REC_PER_PAGE;
+      if (pPanel->pageOffset > num - FDK_REC_PER_PAGE) {
+        pPanel->pageOffset = num - FDK_REC_PER_PAGE;
+      }
+      pPanel->hlIndex = FDK_REC_PER_PAGE - 1;
       break;
 
     case KBPRS_ENTER:
-
+      if (!num) break;
       pFdkUiProperty->fdkDumpPanel.byteBase =
-          pFdkUiProperty->fdkPciListPanel.hlIndex
-              + pFdkUiProperty->fdkPciListPanel.pageOffset;
+          (u64)(pPanel->hlIndex + pPanel->pageOffset);
       return 1;
 
     default:
@@ -177,4 +133,3 @@ s32 handleKeyPressForPciListPanel(fdkUiProperty_t *pFdkUiProperty) {
 
   return 0;
 }
-

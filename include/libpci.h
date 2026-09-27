@@ -2,7 +2,7 @@
  * FDK - Firmware Debug Kit
  * File: libpci.h
  *
- * Copyright (C) 2006 - 2013 Merck Hung <merckhung@gmail.com>
+ * Copyright (C) 2006 - 2026 Merck Hung <merckhung@gmail.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -12,35 +12,39 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
-#define PCI_ADDR_PORT           0xCF8
-#define PCI_DATA_PORT           0xCFC
-#define PCI_DATA_PORT_END       0xCFC
+#ifndef FDK_INCLUDE_LIBPCI_H_
+#define FDK_INCLUDE_LIBPCI_H_
 
-#define PCI_ADDR_ENABLE         0x80000000
+#include "mtypes.h"
+#include "packet.h"
 
-#define PCI_BUS_MASK            0xFF
-#define PCI_DEV_MASK            0x1F
-#define PCI_FUNC_MASK           0x07
-#define PCI_REG_MASK            0xFF
-#define PCI_REG_ALIGN           0x00000003
+// PCI configuration addresses use the classic CF8h layout, with the PCI
+// segment (domain) stored in the otherwise reserved bits 30:24:
+//
+//   31     30:24    23:16  15:11  10:8   7:0
+//   enable segment  bus    dev    func   register
+#define PCI_ADDR_ENABLE 0x80000000U
+#define PCI_SEG_MASK 0x7F
+#define PCI_BUS_MASK 0xFF
+#define PCI_DEV_MASK 0x1F
+#define PCI_FUNC_MASK 0x07
+#define PCI_REG_MASK 0xFF
+#define PCI_SEG_OFFSET 24
+#define PCI_BUS_OFFSET 16
+#define PCI_DEV_OFFSET 11
+#define PCI_FUNC_OFFSET 8
 
-#define PCI_BUS_OFFSET          16
-#define PCI_DEV_OFFSET          11
-#define PCI_FUNC_OFFSET         8
-#define PCI_REG_OFFSET          2
-#define PCI_BITS_BYTE           8
+#define PCI_SYSFS_DEVICES "/sys/bus/pci/devices"
 
-#define FDK_CMOS_ADDR			0x70
-#define FDK_CMOS_DATA			0x71
+// Fills |pFdkPciDev| with up to |max| devices sorted by segment, bus,
+// device and function. Returns the number of devices found.
+u32 pciListDevices(fdkPciDev_t *pFdkPciDev, u32 max);
 
-u32 pciBaseAddress(u32 bus, u32 dev, u32 fun, u32 reg);
-s32 pciInitialize(void);
-u32 pciReadConfDWord(u32 addr);
-void pciWriteConfDWord(u32 addr, u32 value);
-u8 pciReadConfByte(u32 addr);
-void pciWriteConfByte(u32 addr, u8 value);
-s32 cmosInitialize(void);
+// Reads/writes |len| bytes of configuration space starting at |addr|.
+// Bytes that cannot be read are returned as 0xFF. Return 0 on success.
+s32 pciReadConfig(u32 addr, u32 len, u8 *buf);
+s32 pciWriteConfig(u32 addr, u32 len, const u8 *buf);
 
+#endif  // FDK_INCLUDE_LIBPCI_H_

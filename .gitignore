@@ -1,6 +1,8 @@
 .project
 .cproject
-cfdk
-fdkd
-memvr
 *.o
+*.d
+/cfdk
+/fdkd
+/memvr
+/data/pci.ids.new

@@ -2,7 +2,7 @@
  * FDK - Firmware Debug Kit
  * File: libcomm.h
  *
- * Copyright (C) 2006 - 2013 Merck Hung <merckhung@gmail.com>
+ * Copyright (C) 2006 - 2026 Merck Hung <merckhung@gmail.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -12,62 +12,22 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
-//
-// Definitions
-//
-#define FDK_STD_IN					0
-#define FDK_STD_OUT					1
-#define FDK_STD_ERR					2
-#define FDK_CLEAR_SCREEN			"\033[2J\033[f"
-#define FDK_SZ_SECTOR				512
-#define FDK_MAX_PATHNAME			100
-#define IP_STR_LEN_MIN              7
-#define IP_STR_LEN                  15
-#define IP_STR_BUF                  (IP_STR_LEN + 1)
+#ifndef FDK_INCLUDE_LIBCOMM_H_
+#define FDK_INCLUDE_LIBCOMM_H_
 
-//
-// Macros
-//
-#define FDK_GET_BIT( val, bit )		((val & (1 << bit)) >> bit)
-#define FDK_BIT_MASK( x )			(1 << x)
-#define FDK_ARRAY_NRCELL( x )		(sizeof(x)/sizeof(x[0]))
-#define FDK_ENUM_TOSTR( NAME )		#NAME
+#include "mtypes.h"
 
-//
-// Structures
-//
-typedef struct _commonLinklist {
+#define FDK_GET_BIT(val, bit) (((val) >> (bit)) & 1)
 
-  struct _commonLinklist *next;
+// Parses "0x<hex>" into |first|.
+bool ParseOneParameter(const s8 *buf, u64 *first);
 
-} commonLinklist_t;
+// Parses "0x<hex>/0x<hex>" into |first| and |second|.
+bool ParseTwoParameters(const s8 *buf, u64 *first, u64 *second);
 
-//
-// Prototypes
-//
-s32 CbPower(s32 x, s32 y);
-s8 CbAsciiToBin(s8 value);
-u32 CbAsciiBufToBin(const s8 *buf);
-bool ParseOneParameter(s8 *buf, u32 *first);
-bool ParseTwoParameters(s8 *buf, u32 *first, u32 *second);
-s8 ConvertDWordToByte(u32 *Data, u32 Offset);
-void DumpData(s8 *pBuf, u32 size, u32 base);
+// Prints a 32-bit value as a bit table.
 void DisplayInBits(u32 value);
-void ClrScr(void);
-s8 NonBlockReadKey(void);
-bool ReadLine(s8 *Buf, u32 Length);
-s8 GetKey(void);
 
-s32 isIPv4Format(const s8 *str);
-
-int countLinklist(commonLinklist_t *head);
-commonLinklist_t **tailOfLinklist(commonLinklist_t **head);
-void appendLinklist(commonLinklist_t **head, commonLinklist_t *object);
-commonLinklist_t *retriveFirstLinklist(commonLinklist_t **head);
-commonLinklist_t *removeLinklist(commonLinklist_t **head,
-    commonLinklist_t *tgt);
-void freeLinklist(commonLinklist_t *head);
-
+#endif  // FDK_INCLUDE_LIBCOMM_H_

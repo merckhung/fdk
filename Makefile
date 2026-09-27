@@ -2,7 +2,7 @@
 # FDK - Firmware Debug Kit
 # File: Makefile
 #
-# Copyright (C) 2006 - 2013 Merck Hung <merckhung@gmail.com>
+# Copyright (C) 2006 - 2026 Merck Hung <merckhung@gmail.com>
 #
 # This software is licensed under the terms of the GNU General Public
 # License version 2, as published by the Free Software Foundation, and
@@ -14,61 +14,87 @@
 # GNU General Public License for more details.
 #
 
-CROSS_COMPILE       :=
-AS                  :=   $(CROSS_COMPILE)as
-AR                  :=   $(CROSS_COMPILE)ar
-CC                  :=   $(CROSS_COMPILE)gcc
-CPP                 :=   $(CC) -E
-LD                  :=   $(CROSS_COMPILE)ld
-NM                  :=   $(CROSS_COMPILE)nm
-OBJCOPY             :=   $(CROSS_COMPILE)objcopy
-OBJDUMP             :=   $(CROSS_COMPILE)objdump
-RANLIB              :=   $(CROSS_COMPILE)ranlib
-READELF             :=   $(CROSS_COMPILE)readelf
-SIZE                :=   $(CROSS_COMPILE)size
-STRINGS             :=   $(CROSS_COMPILE)strings
-STRIP               :=   $(CROSS_COMPILE)strip
+CROSS_COMPILE ?=
+CC            := $(CROSS_COMPILE)gcc
+PKG_CONFIG    ?= pkg-config
+CLANG_FORMAT  ?= clang-format
 
-CFLAGS				:=	-Iinclude -Wall -g3
-LDFLAGS				:=
+PREFIX        ?= /usr/local
+BINDIR        ?= $(PREFIX)/bin
+SBINDIR       ?= $(PREFIX)/sbin
+DATADIR       ?= $(PREFIX)/share/fdk
 
-MODULES				:=	fdkd cfdk memvr
+PCIIDS_URL    ?= https://pci-ids.ucw.cz/v2.2/pci.ids
+PCIIDS_MIRROR ?= https://raw.githubusercontent.com/pciutils/pciids/master/pci.ids
 
-PATH_LIB			:=	lib
-OBJS_COMMON			:=	$(PATH_LIB)/packet.o $(PATH_LIB)/netsock.o $(PATH_LIB)/libcomm.o
+CFLAGS        ?= -O2 -g
+CFLAGS        += -std=gnu11 -Wall -Wextra -Wno-unused-parameter
+CPPFLAGS      += -Iinclude -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 \
+                 -DFDK_DATADIR='"$(DATADIR)"' -MMD -MP
+LDFLAGS       ?=
 
-PATH_FDKD			:=	src_fdkd
-OBJS_FDKD			:=	$(PATH_FDKD)/fdkd.o $(PATH_FDKD)/helper.o $(PATH_FDKD)/linux/libmem.o $(PATH_FDKD)/linux/libdisk.o $(PATH_FDKD)/linux/pc/libpci.o $(OBJS_COMMON)
-CFLAGS_FDKD			:=	$(CFLAGS)
-LDFLAGS_FDKD		:=	$(LDFLAGS) -lpthread
+NCURSES_CFLAGS := $(shell $(PKG_CONFIG) --cflags ncurses panel 2>/dev/null)
+NCURSES_LIBS   := $(shell $(PKG_CONFIG) --libs panel ncurses 2>/dev/null || \
+                    echo -lpanel -lncurses)
 
-PATH_CFDK			:=	src_cfdk
-OBJS_CFDK			:=	$(PATH_CFDK)/cfdk.o $(PATH_CFDK)/pciListPanel.o $(PATH_CFDK)/dumpPanel.o $(PATH_CFDK)/utils.o $(OBJS_COMMON)
-CFLAGS_CFDK			:=	$(CFLAGS)
-LDFLAGS_CFDK		:=	$(LDFLAGS) -lpanel -lncurses
+PROGRAMS      := fdkd cfdk memvr
 
-PATH_MEMVR			:=	src_memvr
-OBJS_MEMVR			:=	$(PATH_MEMVR)/memvr.o $(PATH_MEMVR)/utils.o $(OBJS_COMMON)
-CFLAGS_MEMVR		:=	$(CFLAGS)
-LDFLAGS_MEMVR		:=	$(LDFLAGS)
+OBJS_COMMON   := lib/packet.o lib/netsock.o lib/libcomm.o
+OBJS_FDKD     := src_fdkd/fdkd.o src_fdkd/handler.o \
+                 src_fdkd/linux/libmem.o src_fdkd/linux/libdisk.o \
+                 src_fdkd/linux/libpci.o src_fdkd/linux/libport.o \
+                 src_fdkd/linux/libe820.o $(OBJS_COMMON)
+OBJS_CFDK     := src_cfdk/cfdk.o src_cfdk/client.o src_cfdk/pciids.o \
+                 src_cfdk/pciListPanel.o src_cfdk/dumpPanel.o $(OBJS_COMMON)
+OBJS_MEMVR    := src_memvr/memvr.o src_memvr/client.o $(OBJS_COMMON)
 
+ALL_OBJS      := $(sort $(OBJS_FDKD) $(OBJS_CFDK) $(OBJS_MEMVR))
+SOURCES       := $(wildcard include/*.h lib/*.c src_*/*.c src_*/*/*.c)
 
-all: $(MODULES)
+.PHONY: all clean install uninstall format check-format update-pciids
+
+all: $(PROGRAMS)
 
 fdkd: $(OBJS_FDKD)
-	@$(CC) $(CFLAGS_FDKD) -o $@ $(OBJS_FDKD) $(LDFLAGS_FDKD)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) -lpthread
 
 cfdk: $(OBJS_CFDK)
-	@$(CC) $(CFLAGS_CFDK) -o $@ $(OBJS_CFDK) $(LDFLAGS_CFDK)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(NCURSES_LIBS)
 
 memvr: $(OBJS_MEMVR)
-	@$(CC) $(CFLAGS_MEMVR) -o $@ $(OBJS_MEMVR) $(LDFLAGS_MEMVR)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+src_cfdk/%.o: CPPFLAGS += $(NCURSES_CFLAGS)
 
 %.o: %.c
-	@$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+
+install: all
+	install -d $(DESTDIR)$(SBINDIR) $(DESTDIR)$(BINDIR) $(DESTDIR)$(DATADIR)
+	install -m 0755 fdkd $(DESTDIR)$(SBINDIR)/fdkd
+	install -m 0755 cfdk memvr $(DESTDIR)$(BINDIR)/
+	install -m 0644 data/pci.ids $(DESTDIR)$(DATADIR)/pci.ids
+
+uninstall:
+	$(RM) $(DESTDIR)$(SBINDIR)/fdkd $(DESTDIR)$(BINDIR)/cfdk \
+	      $(DESTDIR)$(BINDIR)/memvr $(DESTDIR)$(DATADIR)/pci.ids
+
+# Formats the sources with the Google C++ style (see .clang-format).
+format:
+	$(CLANG_FORMAT) -i $(SOURCES)
+
+check-format:
+	$(CLANG_FORMAT) --dry-run --Werror $(SOURCES)
+
+# Refreshes the bundled PCI ID database from the PCI ID Project.
+update-pciids:
+	curl -fsSL -o data/pci.ids.new $(PCIIDS_URL) || \
+	  curl -fsSL -o data/pci.ids.new $(PCIIDS_MIRROR)
+	grep -q '^#.*Version:' data/pci.ids.new
+	mv data/pci.ids.new data/pci.ids
+	@grep -m1 'Version:' data/pci.ids
 
 clean:
-	@$(RM) -f $(MODULES)
-	$(shell find ./ -name "*.o" -exec rm -f {} \;)
+	$(RM) $(PROGRAMS) $(ALL_OBJS) $(ALL_OBJS:.o=.d)
 
-
+-include $(ALL_OBJS:.o=.d)

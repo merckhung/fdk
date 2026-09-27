@@ -2,7 +2,7 @@
  * FDK - Firmware Debug Kit
  * File: libmem.h
  *
- * Copyright (C) 2006 - 2015 Merck Hung <merckhung@gmail.com>
+ * Copyright (C) 2006 - 2026 Merck Hung <merckhung@gmail.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -12,43 +12,34 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
-#ifndef FDK_LIBMEM_H_
-#define FDK_LIBMEM_H_
+#ifndef FDK_INCLUDE_LIBMEM_H_
+#define FDK_INCLUDE_LIBMEM_H_
 
-#include <stdint.h>
+#include "mtypes.h"
 
-#define FDK_MEM_MAXLEN    0x1000
-#define FDK_4K_PAGE       0x1000
-#define FDK_MAX_FILENAME  40
-#define FDK_MAX_PATHNAME  100
-#define FDK_MEM_DEV       "/dev/mem"
-#define FDK_PAGE_MASK     0xFFFFFFFFFFFFE000ULL
+#define FDK_MEM_DEV "/dev/mem"
 
-int32_t openMemDev(void);
-void closeMemDev(int32_t fd);
+s32 openMemDev(void);
+void closeMemDev(s32 fd);
 
-volatile void *memMapping(int32_t fd, uint64_t addr, uint32_t len, uint64_t *alignOff, uint32_t *actLen);
-int32_t memUnmapping(void *phyMem, uint32_t len);
+// Copies |len| bytes of physical memory at |addr| into |buf|. Returns 0 on
+// success; on failure |buf| is filled with 0xFF and -1 is returned.
+s32 memReadBuffer(s32 fd, u64 addr, u32 len, u8 *buf);
 
-uint8_t memReadByte(int32_t fd, uint64_t addr);
-uint16_t memReadWord(int32_t fd, uint64_t addr);
-uint32_t memReadDWord(int32_t fd, uint64_t addr);
-uint32_t memReadBuffer(int32_t fd, uint64_t addr, uint32_t len, uint8_t *buf);
-uint32_t memWriteBuffer(int32_t fd, uint64_t addr, uint32_t len, uint8_t *buf);
-uint8_t memWriteByte(int32_t fd, uint64_t addr, uint8_t val);
-uint16_t memWriteWord(int32_t fd, uint64_t addr, uint16_t val);
-uint32_t memWriteDWord(int32_t fd, uint64_t addr, uint32_t val);
+// Copies |len| bytes from |buf| to physical memory at |addr|. Returns 0 on
+// success.
+s32 memWriteBuffer(s32 fd, u64 addr, u32 len, const u8 *buf);
 
-uint8_t fileReadByte(int32_t fd, uint64_t addr);
-uint16_t fileReadWord(int32_t fd, uint64_t addr);
-uint32_t fileReadDWord(int32_t fd, uint64_t addr);
-uint32_t fileReadBuffer(int32_t fd, uint64_t addr, uint32_t len, uint8_t *buf);
-uint32_t fileWriteBuffer(int32_t fd, uint64_t addr, uint32_t len, uint8_t *buf);
-uint8_t fileWriteByte(int32_t fd, uint64_t addr, uint8_t val);
-uint16_t fileWriteWord(int32_t fd, uint64_t addr, uint16_t val);
-uint32_t fileWriteDWord(int32_t fd, uint64_t addr, uint32_t val);
+// Single, width-exact accesses (suitable for MMIO registers). The write
+// helpers return the value read back after the write; all return all-ones
+// on failure.
+u8 memReadByte(s32 fd, u64 addr);
+u16 memReadWord(s32 fd, u64 addr);
+u32 memReadDWord(s32 fd, u64 addr);
+u8 memWriteByte(s32 fd, u64 addr, u8 val);
+u16 memWriteWord(s32 fd, u64 addr, u16 val);
+u32 memWriteDWord(s32 fd, u64 addr, u32 val);
 
-#endif  // FDK_LIBMEM_H_
+#endif  // FDK_INCLUDE_LIBMEM_H_

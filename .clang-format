@@ -1,0 +1,3 @@
+# FDK follows the Google C++ style guide, applied to C.
+BasedOnStyle: Google
+Language: Cpp

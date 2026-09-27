@@ -2,7 +2,7 @@
  * FDK - Firmware Debug Kit
  * File: mtypes.h
  *
- * Copyright (C) 2006 - 2013 Merck Hung <merckhung@gmail.com>
+ * Copyright (C) 2006 - 2026 Merck Hung <merckhung@gmail.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -12,25 +12,33 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
-typedef unsigned char u8;
-typedef unsigned short int u16;
-typedef unsigned int u32;
-typedef unsigned long long int u64;
+#ifndef FDK_INCLUDE_MTYPES_H_
+#define FDK_INCLUDE_MTYPES_H_
 
+#include <stdbool.h>
+#include <stdint.h>
+
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
+// s8 is plain char: it is used for text buffers throughout the code base.
 typedef char s8;
-typedef short int s16;
-typedef int s32;
-typedef long long int s64;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef int64_t s64;
 
-#ifndef bool
-typedef unsigned char bool;
+// ncurses defines these too.
+#ifndef TRUE
+#define TRUE true
+#endif
+#ifndef FALSE
+#define FALSE false
 #endif
 
-#define     TRUE                    1
-#define     FALSE                   0
+#define PACKED __attribute__((packed))
 
-#define		PACKED					__attribute__((packed))
-
+#endif  // FDK_INCLUDE_MTYPES_H_
